@@ -390,37 +390,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 li.innerHTML = `
-                    <div class="task-content">
+                    <div class="task-content" style="width: 100%;">
                         <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: space-between;">
-                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1;">
                                 ${tagBadgeHtml}
                                 <span class="task-text">${task.title}</span>
                             </div>
-                            <label class="switch-wrapper" title="Marcar como concluída">
-                                <input type="checkbox" class="switch-custom" ${task.completed ? 'checked' : ''} />
-                                <span class="switch-slider"></span>
-                            </label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label class="switch-wrapper" title="Marcar como concluída" style="margin-top: 2px;">
+                                    <input type="checkbox" class="switch-custom" ${task.completed ? 'checked' : ''} />
+                                    <span class="switch-slider"></span>
+                                </label>
+                                <div class="task-actions-wrapper">
+                                    <button class="task-actions-btn btn-icon" title="Opções" style="padding: 2px;">
+                                        <i class="ph ph-dots-three-vertical ph-lg"></i>
+                                    </button>
+                                    <div class="task-actions-dropdown">
+                                        <button class="task-action-item edit-btn">
+                                            <i class="ph ph-pencil-simple ph-lg"></i> Editar
+                                        </button>
+                                        <button class="task-action-item reschedule-btn">
+                                            <i class="ph ph-calendar ph-lg"></i> Remarcar
+                                        </button>
+                                        <button class="task-action-item delete delete-btn">
+                                            <i class="ph ph-trash ph-lg"></i> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         ${requestersAndDateHtml}
                         ${notesHtml}
                         <div class="subtasks-container" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
-                    </div>
-                    </div>
-                    <div class="task-actions-wrapper">
-                        <button class="task-actions-btn btn-icon" title="Opções">
-                            <i class="ph ph-dots-three-vertical ph-lg"></i>
-                        </button>
-                        <div class="task-actions-dropdown">
-                            <button class="task-action-item edit-btn">
-                                <i class="ph ph-pencil-simple ph-lg"></i> Editar
-                            </button>
-                            <button class="task-action-item reschedule-btn">
-                                <i class="ph ph-calendar ph-lg"></i> Remarcar
-                            </button>
-                            <button class="task-action-item delete delete-btn">
-                                <i class="ph ph-trash ph-lg"></i> Excluir
-                            </button>
-                        </div>
                     </div>
                 `;
 
