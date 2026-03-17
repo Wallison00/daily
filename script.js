@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     completed: Boolean(t.completed),
                     tagId: t.tagId || null,
                     requesters: t.requesters || [],
+                    notes: t.notes || null,
                     completedDate: t.completedDate || null
                 }));
                 await supabase.from('tasks').upsert(tasksPayload);
