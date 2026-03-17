@@ -456,9 +456,83 @@ input:checked+.switch-slider:before {
     gap: 4px;
 }
 
-.task-actions {
+.task-actions-wrapper {
+    position: relative;
     display: flex;
-    gap: 4px;
+    align-items: flex-start;
+}
+
+.task-actions-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.task-actions-btn:hover, .task-actions-btn.active {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-main);
+}
+
+.task-actions-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    min-width: 140px;
+}
+
+.task-actions-dropdown.show {
+    display: flex;
+}
+
+.task-action-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: var(--transition);
+    text-align: left;
+}
+
+.task-action-item:hover {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-main);
+}
+
+.task-action-item.delete:hover {
+    color: var(--danger);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.task-action-item.reschedule-btn:hover {
+    color: #fbbf24;
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.task-action-item.edit-btn:hover {
+    color: var(--accent);
+    background-color: rgba(59, 130, 246, 0.1);
 }
 
 /* Modal */

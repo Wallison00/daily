@@ -56,6 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const directAddSubtaskBtn = document.getElementById('direct-add-subtask-btn');
     let currentNewTaskSubtasks = [];
 
+    // Global listener to close dropdowns
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.task-actions-wrapper')) {
+            document.querySelectorAll('.task-actions-dropdown.show').forEach(d => d.classList.remove('show'));
+        }
+    });
+
     // Initialize dates
     const today = new Date();
     const todayStr = formatToYYYYMMDD(today);
@@ -398,16 +405,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${notesHtml}
                         <div class="subtasks-container" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
                     </div>
-                    <div class="task-actions" style="flex-direction: column; justify-content: flex-start;">
-                        <button class="btn-icon edit-btn" title="Editar">
-                            <i class="ph ph-pencil-simple ph-lg"></i>
+                    </div>
+                    <div class="task-actions-wrapper">
+                        <button class="task-actions-btn btn-icon" title="Opções">
+                            <i class="ph ph-dots-three-vertical ph-lg"></i>
                         </button>
-                        <button class="btn-icon reschedule-btn" title="Remarcar">
-                            <i class="ph ph-calendar ph-lg"></i>
-                        </button>
-                        <button class="btn-icon delete delete-btn" title="Excluir">
-                            <i class="ph ph-trash ph-lg"></i>
-                        </button>
+                        <div class="task-actions-dropdown">
+                            <button class="task-action-item edit-btn">
+                                <i class="ph ph-pencil-simple ph-lg"></i> Editar
+                            </button>
+                            <button class="task-action-item reschedule-btn">
+                                <i class="ph ph-calendar ph-lg"></i> Remarcar
+                            </button>
+                            <button class="task-action-item delete delete-btn">
+                                <i class="ph ph-trash ph-lg"></i> Excluir
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -520,6 +533,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 li.addEventListener('dragend', () => {
                     li.classList.remove('dragging');
+                });
+
+                // Dropdown menu logic
+                const actionsBtn = li.querySelector('.task-actions-btn');
+                const actionsDropdown = li.querySelector('.task-actions-dropdown');
+                
+                actionsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Fecha os outros que possam estar abertos
+                    document.querySelectorAll('.task-actions-dropdown.show').forEach(d => {
+                        if (d !== actionsDropdown) d.classList.remove('show');
+                    });
+                    actionsDropdown.classList.toggle('show');
                 });
 
                 // Event Listeners
