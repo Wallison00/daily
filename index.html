@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Phosphor Icons for UI -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1>Daily Feed</h1>
+                    <p class="subtitle">Seu reporte diário, organizado.</p>
+                </div>
+            </div>
+        </header>
+
+        <button id="fab-add-task" class="fab-btn" title="Adicionar Atividade">
+            <i class="ph ph-plus"></i>
+        </button>
+
+        <section class="tasks-container" id="tasks-container">
+            <!-- Task groups will be dynamically injected here -->
+        </section>
+    </div>
+
+    <!-- Modal for Adding Task -->
+    <div class="modal-overlay" id="add-task-modal">
+        <div class="modal-content">
+            <h3>Nova Atividade</h3>
+            <form id="task-form">
+                <input type="text" id="task-input" placeholder="O que você precisa fazer?" required
+                    autocomplete="off" />
+                <input type="text" id="requester-input" placeholder="Solicitantes (separados por vírgula)"
+                    autocomplete="off" />
+                <textarea id="task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="2"
+                    style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-primary); margin-top: 8px; resize: vertical; box-sizing: border-box;"></textarea>
+
+                <div class="new-subtasks-container" style="margin-top: 12px; margin-bottom: 8px;">
+                    <div id="new-task-subtasks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="add-subtask-input" placeholder="Adicionar micro atividade (opcional)..."
+                            autocomplete="off" style="flex: 1;" />
+                        <button type="button" class="btn-secondary" id="direct-add-subtask-btn"
+                            style="padding: 6px 12px;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-controls">
+                    <select id="tag-select" title="Selecione uma etiqueta" class="select-custom">
+                        <option value="">Sem tag</option>
+                    </select>
+                    <button type="button" class="btn-icon" id="add-tag-btn" title="Nova tag">
+                        <i class="ph ph-tag ph-lg"></i>
+                    </button>
+                    <input type="date" id="date-input" title="Deixe em branco para o Backlog" />
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancel-add-task">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Rescheduling -->
+    <div class="modal-overlay" id="reschedule-modal">
+        <div class="modal-content">
+            <h3>Remarcar Atividade</h3>
+            <p id="reschedule-task-name"></p>
+            <input type="date" id="reschedule-date-input" required />
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancel-reschedule">Cancelar</button>
+                <button class="btn-primary" id="confirm-reschedule">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for New Tag -->
+    <div class="modal-overlay" id="tag-modal">
+        <div class="modal-content">
+            <h3>Nova Etiqueta</h3>
+            <input type="text" id="new-tag-name" placeholder="Nome da etiqueta" autocomplete="off" />
+            <input type="color" id="new-tag-color" value="#3b82f6" title="Cor da etiqueta" class="color-picker" />
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancel-tag">Cancelar</button>
+                <button class="btn-primary" id="confirm-tag">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Task -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content">
+            <h3>Editar Atividade</h3>
+            <input type="text" id="edit-task-input" placeholder="O que você precisa fazer?" required
+                autocomplete="off" />
+            <input type="text" id="edit-requester-input" placeholder="Solicitantes (separados por vírgula)"
+                autocomplete="off" />
+            <textarea id="edit-task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="3"
+                style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-primary); margin-top: 8px; margin-bottom: 8px; resize: vertical; box-sizing: border-box;"></textarea>
+            <input type="date" id="edit-date-input" title="Data da atividade" />
+            <select id="edit-tag-select" title="Selecione uma etiqueta" class="select-custom" style="width: 100%;">
+                <option value="">Sem tag</option>
+            </select>
+
+            <div class="edit-subtasks-container">
+                <h4 style="font-size: 0.9rem; margin-bottom: 4px; color: var(--text-muted);">Checkpoints</h4>
+                <div id="edit-subtasks-list"
+                    style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="new-subtask-input" placeholder="Novo checkpoint..." autocomplete="off"
+                        style="flex: 1;" />
+                    <button type="button" class="btn-secondary" id="add-subtask-btn"
+                        style="padding: 6px 12px;">Add</button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancel-edit">Cancelar</button>
+                <button class="btn-primary" id="confirm-edit">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
