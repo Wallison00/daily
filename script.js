@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Configurações do Supabase (COLOQUE SUAS CREDENCIAIS AQUI)
+    const SUPABASE_URL = 'https://jodgaradzeyoqgiwivty.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_08nasEG6jbI06xAh_WWW5g_6wU21j97';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // State
     let tasks = [];
     let tags = [];
@@ -105,24 +110,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Backend / Storage integrations
     async function loadTasks() {
         try {
-            // Tenta consumir direto da API (banco de dados em arquivo)
-            const response = await fetch('/api/tasks');
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    tasks = data;
-                    tags = [];
-                } else {
-                    tasks = data.tasks || [];
-                    tags = data.tags || [];
-                }
-            } else {
-                throw new Error("API não acessível, caindo para modo Offline");
-            }
+            // Buscando as Tags do Supabase
+            const { data: tagsData, error: tagsErr } = await supabase.from('tags').select('*');
+            if (tagsErr) throw tagsErr;
+            tags = tagsData || [];
+
+            // Buscando as Tasks + Subtasks ligadas a ela
+            const { data: tasksData, error: tasksErr } = await supabase.from('tasks').select('*, subtasks(*)');
+            if (tasksErr) throw tasksErr;
+
+            // Formata o array para voltar a comportar os objetos subtasks diretamente na task
+            tasks = (tasksData || []).map(t => {
+                // garante que exista array pelo menos
+                t.subtasks = t.subtasks || [];
+                return t;
+            });
         } catch (err) {
             console.warn(err.message, "- Fallback para localStorage Ativado");
             const localDataTasks = localStorage.getItem('daily_tasks');
-            const localDataTags = localStorage.getItem('daily_tags');
 
             if (localDataTasks) {
                 const parsed = JSON.parse(localDataTasks);
@@ -133,65 +138,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags = parsed.tags || [];
                 }
             }
-            if (localDataTags) {
-                tags = JSON.parse(localDataTags);
-            }
         }
-
-        // Auto convert old [Tag] format to new tags system, auto-populate requesters if not exists
-        let isModified = false;
-        tasks.forEach(task => {
-            if (!task.requesters) {
-                task.requesters = [];
-                isModified = true;
-            }
-
-            if (!task.tagId && task.title) {
-                const match = task.title.match(/^\[(.*?)\]\s+(.*)$/);
-                if (match) {
-                    const tagName = match[1];
-                    const newTitle = match[2];
-
-                    let tag = tags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
-                    if (!tag) {
-                        tag = {
-                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                            name: tagName,
-                            color: '#3b82f6'
-                        };
-                        tags.push(tag);
-                    }
-
-                    task.tagId = tag.id;
-                    task.title = newTitle;
-                    isModified = true;
-                }
-            }
-        });
 
         renderTags();
-        if (isModified) {
-            saveTasks(); // Will also call renderTasks
-        } else {
-            renderTasks();
-        }
+        renderTasks();
     }
 
     async function saveTasks() {
-        const payload = { tasks, tags };
         try {
-            // Salva os dados no nosso banco (data.json)
-            await fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            // Upsert tags
+            if (tags.length > 0) {
+                await supabase.from('tags').upsert(tags.map(t => ({
+                    id: t.id, name: t.name, color: t.color
+                })));
+            }
+
+            // Upsert tasks
+            if (tasks.length > 0) {
+                const tasksPayload = tasks.map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    date: t.date || null,
+                    completed: Boolean(t.completed),
+                    tagId: t.tagId || null,
+                    requesters: t.requesters || [],
+                    completedDate: t.completedDate || null
+                }));
+                await supabase.from('tasks').upsert(tasksPayload);
+
+                // Upsert subtasks
+                let allSubtasks = [];
+                tasks.forEach(t => {
+                    if (t.subtasks && t.subtasks.length > 0) {
+                        t.subtasks.forEach(st => {
+                            allSubtasks.push({
+                                id: st.id,
+                                taskId: t.id,
+                                title: st.title,
+                                completed: Boolean(st.completed),
+                                completedDate: st.completedDate || null
+                            });
+                        });
+                    }
+                });
+
+                if (allSubtasks.length > 0) {
+                    await supabase.from('subtasks').upsert(allSubtasks);
+                }
+            }
         } catch (err) {
-            console.warn("Falha ao salvar no banco (data.json). Salvando no localStorage e mantendo em memória.");
+            console.warn("Falha ao salvar no banco Supabase:", err);
         }
+
         // Fallback de segurança local
+        const payload = { tasks, tags };
         localStorage.setItem('daily_tasks', JSON.stringify(payload));
-        localStorage.setItem('daily_tags', JSON.stringify(tags));
 
         renderTasks();
     }
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tasks.forEach(task => {
             let groupKey = '';
-            
+
             if (task.completed) {
                 groupKey = 'concluidos';
             } else if (!task.date) {
@@ -267,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         order.forEach(groupKey => {
             const groupData = groups[groupKey];
             let isShowingCompleted = showCompletedGroups[groupKey] || false;
-            
+
             const dateTasks = groupData.tasks.filter(task => isShowingCompleted || !task.completed);
 
             hasRenderedTask = hasRenderedTask || (dateTasks.length > 0);
@@ -578,16 +579,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function deleteTask(id) {
         tasks = tasks.filter(t => t.id !== id);
-        saveTasks();
+        // Exclui diretamente da base
+        supabase.from('tasks').delete().eq('id', id).then(() => {
+            saveTasks();
+        }).catch(err => {
+            console.error("Erro ao deletar do Supabase:", err);
+            saveTasks();
+        });
     }
 
     function moveTask(id, targetDate, targetId = null) {
         const taskIndex = tasks.findIndex(t => t.id === id);
         if (taskIndex > -1) {
             const task = tasks.splice(taskIndex, 1)[0];
-            
+
             const todayStr = formatToYYYYMMDD(new Date());
-            
+
             if (targetDate === 'concluidos') {
                 task.completed = true;
                 if (!task.completedDate) {
@@ -744,8 +751,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const delBtn = div.querySelector('.btn-icon');
             delBtn.addEventListener('click', () => {
-                currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== st.id);
-                renderEditSubtasks();
+                const subId = st.id;
+                currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
+                // Exclui subtask da base do Supabase
+                supabase.from('subtasks').delete().eq('id', subId).then(() => {
+                    renderEditSubtasks();
+                });
             });
             editSubtasksList.appendChild(div);
         });
