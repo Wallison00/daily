@@ -359,11 +359,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const tagBadgeHtml = taskTag ? `<span class="task-tag" style="background-color: ${taskTag.color}; color: ${getContrastYIQ(taskTag.color)}; border: 1px solid ${taskTag.color};">${taskTag.name}</span>` : '';
 
-                const requestersHtml = (task.requesters && task.requesters.length > 0)
-                    ? `<div class="requester-area">
-                        ${task.requesters.map(req => `<span class="requester-badge"><i class="ph ph-user"></i> ${req}</span>`).join('')}
-                       </div>`
+                let requestersAndDateHtml = '';
+                const reqBadges = task.requesters && task.requesters.length > 0
+                    ? task.requesters.map(req => `<span class="requester-badge"><i class="ph ph-user"></i> ${req}</span>`).join('')
                     : '';
+
+                const taskCompletedDateHtml = (task.completed && task.completedDate)
+                    ? `<span style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-left: auto;"><i class="ph ph-calendar-check"></i> ${task.completedDate.split('-').reverse().join('/')}</span>`
+                    : '';
+
+                if (reqBadges || taskCompletedDateHtml) {
+                    requestersAndDateHtml = `
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+                            <div class="requester-area" style="margin: 0; display: flex; gap: 4px; flex-wrap: wrap;">
+                                ${reqBadges}
+                            </div>
+                            ${taskCompletedDateHtml}
+                        </div>`;
+                }
 
                 const notesHtml = task.notes
                     ? `<div class="task-notes-display" style="font-size: 0.8rem; color: var(--text-muted); padding: 6px 8px; background: rgba(0,0,0,0.03); border-radius: 4px; margin-top: 6px; border-left: 2px solid var(--border);">${task.notes.replace(/\n/g, '<br>')}</div>`
@@ -381,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="switch-slider"></span>
                             </label>
                         </div>
-                        ${requestersHtml}
+                        ${requestersAndDateHtml}
                         ${notesHtml}
                         <div class="subtasks-container" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
                     </div>
@@ -416,10 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         stLabel.style.borderRadius = '4px';
 
                         stLabel.innerHTML = `
-                            <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab;"></i>
-                            <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
-                            <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} flex: 1;" title="${st.title}">${st.title}</span>
-                            <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: auto; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? '' : 'display: none;'}" />
+                            <div style="display: flex; align-items: flex-start; gap: 6px; width: 100%;">
+                                <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab; margin-top: 2px;"></i>
+                                <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px; margin-top: 1px;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
+                                <div style="display: flex; flex-direction: column; flex: 1; align-items: flex-start;">
+                                    <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} word-break: break-word;" title="${st.title}">${st.title}</span>
+                                    <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: fit-content; margin-top: 4px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? 'display: inline-block;' : 'display: none;'}" />
+                                </div>
+                            </div>
                         `;
 
                         // Drag start/end for subtasks
