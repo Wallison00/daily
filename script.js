@@ -69,7 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global listener to close dropdowns
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions-wrapper')) {
-            document.querySelectorAll('.task-actions-dropdown.show').forEach(d => d.classList.remove('show'));
+            document.querySelectorAll('.task-actions-dropdown.show').forEach(d => {
+                d.classList.remove('show');
+                const parentLi = d.closest('.task-item');
+                if (parentLi) {
+                    parentLi.style.zIndex = '1';
+                    parentLi.style.position = 'relative'; // Ensure z-index works
+                }
+            });
         }
     });
 
@@ -593,9 +600,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.stopPropagation();
                     // Fecha os outros que possam estar abertos
                     document.querySelectorAll('.task-actions-dropdown.show').forEach(d => {
-                        if (d !== actionsDropdown) d.classList.remove('show');
+                        if (d !== actionsDropdown) {
+                            d.classList.remove('show');
+                            const parentLi = d.closest('.task-item');
+                            if (parentLi) {
+                                parentLi.style.zIndex = '1';
+                                parentLi.style.position = 'relative';
+                            }
+                        }
                     });
+                    
+                    const isOpening = !actionsDropdown.classList.contains('show');
                     actionsDropdown.classList.toggle('show');
+                    
+                    // Modifica o z-index da LI para sobrepor cards abaixo
+                    li.style.position = 'relative';
+                    li.style.zIndex = isOpening ? '9999' : '1';
                 });
 
                 // Event Listeners
