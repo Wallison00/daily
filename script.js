@@ -450,15 +450,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         stLabel.style.padding = '2px';
                         stLabel.style.borderRadius = '4px';
 
-                        const subAzureLinkHtml = st.azureCode ? `<a href="https://dev.azure.com/milsenior/PORTFOLIO/_workitems/edit/${st.azureCode}" target="_blank" style="font-size: 0.75rem; background: var(--bg-surface-hover); padding: 0 4px; border-radius: 4px; color: var(--text-main); text-decoration: none; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; width: fit-content;"><i class="ph ph-link"></i> #${st.azureCode}</a>` : '';
+                        const subAzureLinkHtml = st.azureCode ? `<a href="https://dev.azure.com/milsenior/PORTFOLIO/_workitems/edit/${st.azureCode}" target="_blank" style="font-size: 0.75rem; background: var(--bg-surface-hover); padding: 0 4px; border-radius: 4px; color: var(--text-main); text-decoration: none; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 2px; width: fit-content;"><i class="ph ph-link"></i> #${st.azureCode}</a>` : '';
 
                         stLabel.innerHTML = `
                             <div style="display: flex; align-items: flex-start; gap: 6px; width: 100%;">
                                 <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab; margin-top: 2px;"></i>
                                 <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px; margin-top: 1px;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
                                 <div style="display: flex; flex-direction: column; flex: 1; align-items: flex-start;">
-                                    <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} word-break: break-word;" title="${st.title}">${st.title}</span>
-                                    ${subAzureLinkHtml}
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                                        ${subAzureLinkHtml}
+                                        <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} word-break: break-word;" title="${st.title}">${st.title}</span>
+                                    </div>
                                     <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: fit-content; margin-top: 4px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? 'display: inline-block;' : 'display: none;'}" />
                                 </div>
                             </div>
