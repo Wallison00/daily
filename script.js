@@ -887,11 +887,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
                 supabase.from('subtasks').delete().eq('id', subId).catch(err => console.error(err));
                 
+                const parentTask = tasks.find(t => t.id === taskToEdit);
+                if (parentTask) {
+                    parentTask.subtasks = currentEditSubtasks;
+                }
+
+                const parentDate = editDateInput ? editDateInput.value : '';
+                const parentTag = editTagSelect ? editTagSelect.value : '';
+
                 const newTask = {
                     id: Date.now().toString(),
                     title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
-                    date: '', // Backlog
-                    tagId: '',
+                    date: parentDate,
+                    tagId: parentTag,
                     requesters: [],
                     notes: '',
                     azureCode: st.azureCode || '',
@@ -1026,11 +1034,14 @@ document.addEventListener('DOMContentLoaded', () => {
             promoteBtn.addEventListener('click', () => {
                 currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
                 
+                const parentDate = dateInput ? dateInput.value : '';
+                const parentTag = tagSelect ? tagSelect.value : '';
+
                 const newTask = {
                     id: Date.now().toString(),
                     title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
-                    date: '', // Backlog
-                    tagId: '',
+                    date: parentDate,
+                    tagId: parentTag,
                     requesters: [],
                     notes: '',
                     azureCode: st.azureCode || '',
