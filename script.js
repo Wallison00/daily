@@ -187,7 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     completedDate: t.completedDate || null,
                     orderIndex: index
                 }));
-                await supabase.from('tasks').upsert(tasksPayload);
+                const { error: tasksErr } = await supabase.from('tasks').upsert(tasksPayload);
+                if (tasksErr) {
+                    console.error("Erro no upsert de tasks:", tasksErr);
+                    // Silently ignore so it does not crash everything if orderIndex is missing, 
+                    // allowing local storage to at least work.
+                }
 
                 // Upsert subtasks
                 let allSubtasks = [];
@@ -208,7 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (allSubtasks.length > 0) {
-                    await supabase.from('subtasks').upsert(allSubtasks);
+                    const { error: subErr } = await supabase.from('subtasks').upsert(allSubtasks);
+                    if (subErr) console.error("Erro no upsert de subtasks:", subErr);
                 }
             }
         } catch (err) {
@@ -882,34 +888,45 @@ document.addEventListener('DOMContentLoaded', () => {
             textInput.addEventListener('blur', () => textInput.style.border = '1px solid transparent');
 
             const promoteBtn = div.querySelector('.promote-btn');
-            promoteBtn.addEventListener('click', () => {
-                const subId = st.id;
-                currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
-                supabase.from('subtasks').delete().eq('id', subId).catch(err => console.error(err));
-                
-                const parentTask = tasks.find(t => t.id === taskToEdit);
-                if (parentTask) {
-                    parentTask.subtasks = currentEditSubtasks;
+            promoteBtn.addEventListener('click', async () => {
+                const icon = promoteBtn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'ph ph-spinner ph-spin';
+                promoteBtn.disabled = true;
+
+                try {
+                    const subId = st.id;
+                    currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
+                    await supabase.from('subtasks').delete().eq('id', subId);
+                    
+                    const parentTask = tasks.find(t => t.id === taskToEdit);
+                    if (parentTask) {
+                        parentTask.subtasks = currentEditSubtasks;
+                    }
+
+                    const parentDate = editDateInput ? editDateInput.value : '';
+                    const parentTag = editTagSelect ? editTagSelect.value : '';
+
+                    const newTask = {
+                        id: Date.now().toString(),
+                        title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
+                        date: parentDate,
+                        tagId: parentTag,
+                        requesters: [],
+                        notes: '',
+                        azureCode: st.azureCode || '',
+                        comments: [],
+                        subtasks: [],
+                        completed: false
+                    };
+                    tasks.push(newTask);
+                    await saveTasks();
+                    renderEditSubtasks();
+                } catch (err) {
+                    console.error("Erro ao transformar em atividade", err);
+                    icon.className = originalClass;
+                    promoteBtn.disabled = false;
                 }
-
-                const parentDate = editDateInput ? editDateInput.value : '';
-                const parentTag = editTagSelect ? editTagSelect.value : '';
-
-                const newTask = {
-                    id: Date.now().toString(),
-                    title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
-                    date: parentDate,
-                    tagId: parentTag,
-                    requesters: [],
-                    notes: '',
-                    azureCode: st.azureCode || '',
-                    comments: [],
-                    subtasks: [],
-                    completed: false
-                };
-                tasks.push(newTask);
-                saveTasks();
-                renderEditSubtasks();
             });
 
             const delBtn = div.querySelector('.delete-btn');
@@ -1031,27 +1048,37 @@ document.addEventListener('DOMContentLoaded', () => {
             textInput.addEventListener('blur', () => textInput.style.border = '1px solid transparent');
 
             const promoteBtn = div.querySelector('.promote-btn');
-            promoteBtn.addEventListener('click', () => {
-                currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
-                
-                const parentDate = dateInput ? dateInput.value : '';
-                const parentTag = tagSelect ? tagSelect.value : '';
+            promoteBtn.addEventListener('click', async () => {
+                const icon = promoteBtn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'ph ph-spinner ph-spin';
+                promoteBtn.disabled = true;
 
-                const newTask = {
-                    id: Date.now().toString(),
-                    title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
-                    date: parentDate,
-                    tagId: parentTag,
-                    requesters: [],
-                    notes: '',
-                    azureCode: st.azureCode || '',
-                    comments: [],
-                    subtasks: [],
-                    completed: false
-                };
-                tasks.push(newTask);
-                saveTasks();
-                renderNewTaskSubtasks();
+                try {
+                    currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
+                    
+                    const parentDate = dateInput ? dateInput.value : '';
+                    const parentTag = tagSelect ? tagSelect.value : '';
+
+                    const newTask = {
+                        id: Date.now().toString(),
+                        title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
+                        date: parentDate,
+                        tagId: parentTag,
+                        requesters: [],
+                        notes: '',
+                        azureCode: st.azureCode || '',
+                        comments: [],
+                        subtasks: [],
+                        completed: false
+                    };
+                    tasks.push(newTask);
+                    await saveTasks();
+                    renderNewTaskSubtasks();
+                } catch (err) {
+                    icon.className = originalClass;
+                    promoteBtn.disabled = false;
+                }
             });
 
             const delBtn = div.querySelector('.delete-btn');
