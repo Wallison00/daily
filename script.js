@@ -809,21 +809,53 @@ document.addEventListener('DOMContentLoaded', () => {
         currentEditSubtasks.forEach(st => {
             const div = document.createElement('div');
             div.style.display = 'flex';
-            div.style.gap = '8px';
+            div.style.gap = '6px';
             div.style.alignItems = 'center';
             div.innerHTML = `
-                <input type="checkbox" class="checkbox-custom" style="width: 16px; height: 16px; border-radius: 4px;" ${st.completed ? 'checked' : ''} />
-                <span style="flex: 1; font-size: 0.85rem; ${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${st.title}</span>
-                <button type="button" class="btn-icon" style="padding: 2px; color: var(--danger)" title="Excluir">
+                <input type="checkbox" class="checkbox-custom" style="width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;" ${st.completed ? 'checked' : ''} />
+                <input type="text" class="subtask-edit-input" value="${st.title.replace(/"/g, '&quot;')}" style="flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; color: var(--text-main); font-family: inherit; font-size: 0.85rem; padding: 2px 4px; border-radius: 4px; transition: border-color 0.2s;" />
+                <button type="button" class="btn-icon promote-btn" style="padding: 2px; color: var(--accent)" title="Transformar em atividade">
+                    <i class="ph ph-arrow-u-up-right"></i>
+                </button>
+                <button type="button" class="btn-icon delete-btn" style="padding: 2px; color: var(--danger)" title="Excluir">
                     <i class="ph ph-trash"></i>
                 </button>
             `;
-            const checkbox = div.querySelector('input');
+            const checkbox = div.querySelector('.checkbox-custom');
             checkbox.addEventListener('change', (e) => {
                 st.completed = e.target.checked;
+            });
+            const textInput = div.querySelector('.subtask-edit-input');
+            textInput.addEventListener('change', (e) => {
+                st.title = e.target.value.trim() || 'Sem título';
+            });
+            textInput.addEventListener('focus', () => textInput.style.border = '1px solid var(--border)');
+            textInput.addEventListener('blur', () => textInput.style.border = '1px solid transparent');
+
+            const promoteBtn = div.querySelector('.promote-btn');
+            promoteBtn.addEventListener('click', () => {
+                const subId = st.id;
+                currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
+                supabase.from('subtasks').delete().eq('id', subId).catch(err => console.error(err));
+                
+                const newTask = {
+                    id: Date.now().toString(),
+                    title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
+                    date: '', // Backlog
+                    tagId: '',
+                    requesters: [],
+                    notes: '',
+                    azureCode: st.azureCode || '',
+                    comments: [],
+                    subtasks: [],
+                    completed: false
+                };
+                tasks.push(newTask);
+                saveTasks();
                 renderEditSubtasks();
             });
-            const delBtn = div.querySelector('.btn-icon');
+
+            const delBtn = div.querySelector('.delete-btn');
             delBtn.addEventListener('click', () => {
                 const subId = st.id;
                 currentEditSubtasks = currentEditSubtasks.filter(s => s.id !== subId);
@@ -923,15 +955,46 @@ document.addEventListener('DOMContentLoaded', () => {
         currentNewTaskSubtasks.forEach(st => {
             const div = document.createElement('div');
             div.style.display = 'flex';
-            div.style.gap = '8px';
+            div.style.gap = '6px';
             div.style.alignItems = 'center';
             div.innerHTML = `
-                <span style="flex: 1; font-size: 0.85rem; color: var(--text-primary);">• ${st.title}</span>
-                <button type="button" class="btn-icon" style="padding: 2px; color: var(--danger)" title="Excluir">
+                <input type="text" class="subtask-edit-input" value="${st.title.replace(/"/g, '&quot;')}" style="flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; color: var(--text-main); font-family: inherit; font-size: 0.85rem; padding: 2px 4px; border-radius: 4px; transition: border-color 0.2s;" />
+                <button type="button" class="btn-icon promote-btn" style="padding: 2px; color: var(--accent)" title="Transformar em atividade">
+                    <i class="ph ph-arrow-u-up-right"></i>
+                </button>
+                <button type="button" class="btn-icon delete-btn" style="padding: 2px; color: var(--danger)" title="Excluir">
                     <i class="ph ph-trash"></i>
                 </button>
             `;
-            const delBtn = div.querySelector('.btn-icon');
+            const textInput = div.querySelector('.subtask-edit-input');
+            textInput.addEventListener('change', (e) => {
+                st.title = e.target.value.trim() || 'Sem título';
+            });
+            textInput.addEventListener('focus', () => textInput.style.border = '1px solid var(--border)');
+            textInput.addEventListener('blur', () => textInput.style.border = '1px solid transparent');
+
+            const promoteBtn = div.querySelector('.promote-btn');
+            promoteBtn.addEventListener('click', () => {
+                currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
+                
+                const newTask = {
+                    id: Date.now().toString(),
+                    title: textInput.value.trim() || 'Nova Atividade do Checkpoint',
+                    date: '', // Backlog
+                    tagId: '',
+                    requesters: [],
+                    notes: '',
+                    azureCode: st.azureCode || '',
+                    comments: [],
+                    subtasks: [],
+                    completed: false
+                };
+                tasks.push(newTask);
+                saveTasks();
+                renderNewTaskSubtasks();
+            });
+
+            const delBtn = div.querySelector('.delete-btn');
             delBtn.addEventListener('click', () => {
                 currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
                 renderNewTaskSubtasks();
