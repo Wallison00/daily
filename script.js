@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'backlog': { label: 'Backlog', icon: 'ph-stack', tasks: [] },
             'pendentes': { label: 'Pendentes', icon: 'ph-warning-circle', tasks: [] },
             'hoje': { label: 'Hoje', icon: 'ph-calendar-check', tasks: [] },
-            'planejados': { label: 'Planejados', icon: 'ph-calendar-plus', tasks: [] },
+            'em_desenvolvimento': { label: 'Em Desenvolvimento', icon: 'ph-laptop', tasks: [] },
             'concluidos': { label: 'Concluídos', icon: 'ph-check-circle', tasks: [] }
         };
 
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (task.date === todayStr) {
                 groupKey = 'hoje';
             } else {
-                groupKey = 'planejados';
+                groupKey = 'em_desenvolvimento';
             }
 
             groups[groupKey].tasks.push(task);
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return dateB.localeCompare(dateA);
         });
 
-        const order = ['backlog', 'pendentes', 'hoje', 'planejados', 'concluidos'];
+        const order = ['backlog', 'pendentes', 'hoje', 'em_desenvolvimento', 'concluidos'];
         let hasRenderedTask = false;
 
         order.forEach(groupKey => {
@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let y = new Date(); y.setDate(y.getDate() - 1);
                         task.date = formatToYYYYMMDD(y);
                     }
-                } else if (targetDate === 'planejados') {
+                } else if (targetDate === 'em_desenvolvimento') {
                     if (!task.date || task.date <= todayStr) {
                         let tm = new Date(); tm.setDate(tm.getDate() + 1);
                         task.date = formatToYYYYMMDD(tm);
