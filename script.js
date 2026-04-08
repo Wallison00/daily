@@ -419,12 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.innerHTML = `
                     <div class="task-content" style="width: 100%;">
                         <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: space-between;">
-                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1;">
+                            <div style="flex: 1; word-break: break-word; line-height: 1.5;">
                                 ${tagBadgeHtml}
                                 ${azureLinkHtml}
-                                <span class="task-text">${task.title}</span>
+                                <span class="task-text" style="vertical-align: middle;">${task.title}</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0;">
                                 <label class="switch-wrapper" title="Marcar como concluída" style="margin-top: 2px;">
                                     <input type="checkbox" class="switch-custom" ${task.completed ? 'checked' : ''} />
                                     <span class="switch-slider"></span>
@@ -474,12 +474,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         stLabel.innerHTML = `
                             <div style="display: flex; align-items: flex-start; gap: 6px; width: 100%;">
-                                <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab; margin-top: 2px;"></i>
-                                <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px; margin-top: 1px;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
-                                <div style="display: flex; flex-direction: column; flex: 1; align-items: flex-start;">
-                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                                <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab; margin-top: 4px;"></i>
+                                <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px; margin-top: 3px; flex-shrink: 0;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
+                                <div style="display: flex; flex-direction: column; flex: 1; align-items: flex-start; min-width: 0;">
+                                    <div style="line-height: 1.5; word-break: break-word; width: 100%;">
                                         ${subAzureLinkHtml}
-                                        <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} word-break: break-word;" title="${st.title}">${st.title}</span>
+                                        <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} vertical-align: middle;" title="${st.title}">${st.title}</span>
                                     </div>
                                     <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: fit-content; margin-top: 4px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? 'display: inline-block;' : 'display: none;'}" />
                                 </div>
