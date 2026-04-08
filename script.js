@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const directAddSubtaskBtn = document.getElementById('direct-add-subtask-btn');
     let currentNewTaskSubtasks = [];
 
+    const searchCodeInput = document.getElementById('search-code-input');
+    if (searchCodeInput) {
+        searchCodeInput.addEventListener('input', () => {
+            renderTasks();
+        });
+    }
+
     // Global listener to close dropdowns
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions-wrapper')) {
@@ -322,6 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         return taskDate === dateFilter;
                     });
                 }
+            }
+
+            // Filtro por código Azure
+            const searchInputObj = document.getElementById('search-code-input');
+            const searchCodeVal = searchInputObj ? searchInputObj.value.trim().toLowerCase() : '';
+            if (searchCodeVal) {
+                dateTasks = dateTasks.filter(task => {
+                    const taskMatch = task.azureCode && task.azureCode.toLowerCase().includes(searchCodeVal);
+                    const subtaskMatch = task.subtasks && task.subtasks.some(st => st.azureCode && st.azureCode.toLowerCase().includes(searchCodeVal));
+                    return taskMatch || subtaskMatch;
+                });
             }
 
             hasRenderedTask = hasRenderedTask || (dateTasks.length > 0);
