@@ -189,9 +189,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }));
                 const { error: tasksErr } = await supabase.from('tasks').upsert(tasksPayload);
                 if (tasksErr) {
-                    console.error("Erro no upsert de tasks:", tasksErr);
-                    // Silently ignore so it does not crash everything if orderIndex is missing, 
-                    // allowing local storage to at least work.
+                    console.error("Erro no upsert de tasks (possível falta de orderIndex):", tasksErr);
+                    // Fallback para caso o usuário não tenha rodado o SQL do orderIndex
+                    const fallbackTaskPayload = tasksPayload.map(({ orderIndex, ...rest }) => rest);
+                    const { error: fallbackErr } = await supabase.from('tasks').upsert(fallbackTaskPayload);
+                    if (fallbackErr) console.error("Falha fatal no upsert de tasks (fallback):", fallbackErr);
                 }
 
                 // Upsert subtasks
@@ -214,7 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (allSubtasks.length > 0) {
                     const { error: subErr } = await supabase.from('subtasks').upsert(allSubtasks);
-                    if (subErr) console.error("Erro no upsert de subtasks:", subErr);
+                    if (subErr) {
+                        console.error("Erro no upsert de subtasks:", subErr);
+                        const fallbackSubtasks = allSubtasks.map(({ orderIndex, ...rest }) => rest);
+                        await supabase.from('subtasks').upsert(fallbackSubtasks).catch(e => console.error(e));
+                    }
                 }
             }
         } catch (err) {
