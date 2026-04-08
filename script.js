@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = [];
     let tags = [];
     let taskToReschedule = null;
-    let showCompletedGroups = JSON.parse(localStorage.getItem('daily_show_completed_groups')) || {};
+    let columnDateFilters = { pendentes: '', concluidos: '' };
 
     // Elements
     const fabAddTask = document.getElementById('fab-add-task');
@@ -288,9 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         order.forEach(groupKey => {
             const groupData = groups[groupKey];
-            let isShowingCompleted = showCompletedGroups[groupKey] || false;
-
-            const dateTasks = groupData.tasks.filter(task => isShowingCompleted || !task.completed);
+            
+            // Filtro por data
+            let dateTasks = groupData.tasks;
+            if (groupKey === 'pendentes' || groupKey === 'concluidos') {
+                const dateFilter = columnDateFilters[groupKey];
+                if (dateFilter) {
+                    dateTasks = groupData.tasks.filter(task => {
+                        const taskDate = groupKey === 'concluidos' ? task.completedDate : task.date;
+                        return taskDate === dateFilter;
+                    });
+                }
+            }
 
             hasRenderedTask = hasRenderedTask || (dateTasks.length > 0);
 
@@ -302,23 +311,27 @@ document.addEventListener('DOMContentLoaded', () => {
             header.style.display = "flex";
             header.style.alignItems = "center";
             header.style.justifyContent = "space-between";
-            header.style.cursor = "pointer";
+
+            let filterHtml = "";
+            if (groupKey === 'pendentes' || groupKey === 'concluidos') {
+                filterHtml = `<input type="date" class="column-date-filter" data-group="${groupKey}" value="${columnDateFilters[groupKey]}" title="Filtrar por data" style="max-width: 110px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-surface); color: var(--text-main);" />`;
+            }
 
             header.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
                     <i class="ph ${groupData.icon} ph-lg"></i> ${groupData.label} <span style="font-size: 0.75rem; background: var(--bg-dark); padding: 2px 6px; border-radius: 10px; margin-left: 4px;">${dateTasks.length}</span>
                 </div>
-                <button class="toggle-show-completed-btn btn-icon" title="${isShowingCompleted ? 'Ocultar Concluídas' : 'Mostrar Concluídas'}" style="background: transparent; border: none; padding: 2px; color: var(--text-muted);">
-                    <i class="ph ${isShowingCompleted ? 'ph-eye' : 'ph-eye-slash'} ph-lg"></i>
-                </button>
+                ${filterHtml}
             `;
 
-            header.addEventListener('click', (e) => {
-                isShowingCompleted = !isShowingCompleted;
-                showCompletedGroups[groupKey] = isShowingCompleted;
-                localStorage.setItem('daily_show_completed_groups', JSON.stringify(showCompletedGroups));
-                renderTasks();
-            });
+            if (filterHtml) {
+                const input = header.querySelector('.column-date-filter');
+                input.addEventListener('change', (e) => {
+                    columnDateFilters[groupKey] = e.target.value;
+                    renderTasks();
+                });
+                input.addEventListener('click', (e) => e.stopPropagation()); // Evitar bolha se fosse arrastável
+            }
 
             groupDiv.appendChild(header);
 
