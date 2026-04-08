@@ -140,8 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tasks = (tasksData || []).map(t => {
                 // garante que exista array pelo menos
                 t.subtasks = t.subtasks || [];
+                t.subtasks.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
                 return t;
             });
+            tasks.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
         } catch (err) {
             console.warn(err.message, "- Fallback para localStorage Ativado");
             const localDataTasks = localStorage.getItem('daily_tasks');
@@ -172,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Upsert tasks
             if (tasks.length > 0) {
-                const tasksPayload = tasks.map(t => ({
+                const tasksPayload = tasks.map((t, index) => ({
                     id: t.id,
                     title: t.title,
                     date: t.date || null,
@@ -182,7 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     notes: t.notes || null,
                     azureCode: t.azureCode || null,
                     comments: t.comments || [],
-                    completedDate: t.completedDate || null
+                    completedDate: t.completedDate || null,
+                    orderIndex: index
                 }));
                 await supabase.from('tasks').upsert(tasksPayload);
 
@@ -190,14 +193,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 let allSubtasks = [];
                 tasks.forEach(t => {
                     if (t.subtasks && t.subtasks.length > 0) {
-                        t.subtasks.forEach(st => {
+                        t.subtasks.forEach((st, stIndex) => {
                             allSubtasks.push({
                                 id: st.id,
                                 taskId: t.id,
                                 title: st.title,
                                 azureCode: st.azureCode || null,
                                 completed: Boolean(st.completed),
-                                completedDate: st.completedDate || null
+                                completedDate: st.completedDate || null,
+                                orderIndex: stIndex
                             });
                         });
                     }
