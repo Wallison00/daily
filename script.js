@@ -644,10 +644,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Handlers
+    function applyColumnTarget(targetColumn, inOutDate, inOutCompleted) {
+        let date = inOutDate;
+        let completed = inOutCompleted;
+        const todayStr = formatToYYYYMMDD(new Date());
+        
+        if (targetColumn === 'concluidos') {
+            completed = true;
+        } else if (targetColumn) {
+            completed = false;
+            if (targetColumn === 'backlog') date = '';
+            else if (targetColumn === 'hoje') date = todayStr;
+            else if (targetColumn === 'pendentes') {
+                if (!date || date >= todayStr) {
+                    let y = new Date(); y.setDate(y.getDate() - 1);
+                    date = formatToYYYYMMDD(y);
+                }
+            } else if (targetColumn === 'em_desenvolvimento') {
+                if (!date || date <= todayStr) {
+                    let tm = new Date(); tm.setDate(tm.getDate() + 1);
+                    date = formatToYYYYMMDD(tm);
+                }
+            }
+        }
+        return { date, completed };
+    }
+
     function addTask(e) {
         e.preventDefault();
         const title = taskInput.value.trim();
         const date = dateInput.value;
+        const columnTarget = document.getElementById('column-select') ? document.getElementById('column-select').value : '';
         const tagId = tagSelect ? tagSelect.value : '';
         const reqVal = requesterInput ? requesterInput.value.trim() : '';
         const notes = taskNotes ? taskNotes.value.trim() : '';
@@ -669,6 +696,13 @@ document.addEventListener('DOMContentLoaded', () => {
             subtasks: [...currentNewTaskSubtasks],
             completed: false
         };
+
+        if (columnTarget) {
+            const result = applyColumnTarget(columnTarget, newTask.date, newTask.completed);
+            newTask.date = result.date;
+            newTask.completed = result.completed;
+            if (result.completed) newTask.completedDate = formatToYYYYMMDD(new Date());
+        }
 
         tasks.push(newTask);
         saveTasks();
@@ -873,6 +907,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editTaskNotes) editTaskNotes.value = task.notes || '';
             editDateInput.value = task.date;
             editTagSelect.value = task.tagId || '';
+            const colSelect = document.getElementById('edit-column-select');
+            if (colSelect) {
+                const todayStr = formatToYYYYMMDD(new Date());
+                let currentGroup = '';
+                if (task.completed) currentGroup = 'concluidos';
+                else if (!task.date) currentGroup = 'backlog';
+                else if (task.date < todayStr) currentGroup = 'pendentes';
+                else if (task.date === todayStr) currentGroup = 'hoje';
+                else currentGroup = 'em_desenvolvimento';
+                colSelect.value = currentGroup;
+            }
             currentEditSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
             currentEditComments = task.comments ? JSON.parse(JSON.stringify(task.comments)) : [];
             
@@ -1016,6 +1061,15 @@ document.addEventListener('DOMContentLoaded', () => {
             task.title = editTaskInput.value.trim();
             task.date = editDateInput.value;
             task.tagId = editTagSelect.value;
+            
+            const colSelect = document.getElementById('edit-column-select');
+            if (colSelect && colSelect.value) {
+                const result = applyColumnTarget(colSelect.value, task.date, task.completed);
+                task.date = result.date;
+                task.completed = result.completed;
+                if (result.completed && !task.completedDate) task.completedDate = formatToYYYYMMDD(new Date());
+                else if (!result.completed) task.completedDate = null;
+            }
 
             if (editRequesterInput) {
                 const reqVal = editRequesterInput.value.trim();

@@ -60,13 +60,21 @@
                 </div>
 
                 <div class="form-controls">
-                    <select id="tag-select" title="Selecione uma etiqueta" class="select-custom">
+                    <select id="column-select" class="select-custom" style="flex: 1;" title="Coluna de destino">
+                        <option value="">Manter Data (Automático)</option>
+                        <option value="backlog">Backlog</option>
+                        <option value="pendentes">Pendentes</option>
+                        <option value="hoje" selected>Hoje</option>
+                        <option value="em_desenvolvimento">Em Desenvolvimento</option>
+                        <option value="concluidos">Concluídos</option>
+                    </select>
+                    <input type="date" id="date-input" title="Deixe em branco para o Backlog" style="flex: 1;" />
+                    <select id="tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1;">
                         <option value="">Sem tag</option>
                     </select>
                     <button type="button" class="btn-icon" id="add-tag-btn" title="Nova tag">
                         <i class="ph ph-tag ph-lg"></i>
                     </button>
-                    <input type="date" id="date-input" title="Deixe em branco para o Backlog" />
                 </div>
             </div>
 
@@ -123,6 +131,14 @@
                     style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-main); resize: vertical; min-height: 80px; box-sizing: border-box;"></textarea>
 
                 <div style="display: flex; gap: 8px;">
+                    <select id="edit-column-select" class="select-custom" style="flex: 1;" title="Coluna (Estágio)">
+                        <option value="">Manter Estágio</option>
+                        <option value="backlog">Backlog</option>
+                        <option value="pendentes">Pendentes</option>
+                        <option value="hoje">Hoje</option>
+                        <option value="em_desenvolvimento">Em Desenvolvimento</option>
+                        <option value="concluidos">Concluídos</option>
+                    </select>
                     <input type="date" id="edit-date-input" title="Data da atividade" style="flex: 1;" />
                     <select id="edit-tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1;">
                         <option value="">Sem tag</option>
