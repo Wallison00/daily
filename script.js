@@ -549,10 +549,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         e.stopPropagation();
                         const draggedStId = e.dataTransfer.getData('subtask');
                         const pTaskId = e.dataTransfer.getData('parentTask');
-                        if (draggedStId && pTaskId === task.id) {
+                        if (draggedStId && pTaskId) {
                             const afterElement = getDragAfterElement(subtasksContainer, e.clientY, '.subtask-item');
                             const targetStId = afterElement ? afterElement.dataset.stId : null;
-                            moveSubtask(task.id, draggedStId, targetStId);
+                            transferSubtask(pTaskId, task.id, draggedStId, targetStId);
                         }
                     });
                 }
@@ -735,6 +735,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     task.subtasks.push(st);
                 }
                 saveTasks();
+            }
+        }
+    }
+
+    function transferSubtask(fromTaskId, toTaskId, subtaskId, targetSubtaskId = null) {
+        if (fromTaskId === toTaskId) {
+            moveSubtask(toTaskId, subtaskId, targetSubtaskId);
+            return;
+        }
+
+        const fromTask = tasks.find(t => t.id === fromTaskId);
+        const toTask = tasks.find(t => t.id === toTaskId);
+
+        if (fromTask && toTask && fromTask.subtasks) {
+            const stIndex = fromTask.subtasks.findIndex(s => s.id === subtaskId);
+            if (stIndex > -1) {
+                const st = fromTask.subtasks.splice(stIndex, 1)[0];
+                toTask.subtasks = toTask.subtasks || [];
+                
+                if (targetSubtaskId) {
+                    const targetIndex = toTask.subtasks.findIndex(s => s.id === targetSubtaskId);
+                    if (targetIndex > -1) {
+                        toTask.subtasks.splice(targetIndex, 0, st);
+                    } else {
+                        toTask.subtasks.push(st);
+                    }
+                } else {
+                    toTask.subtasks.push(st);
+                }
+                saveTasks();
+                // Render view after crossing tasks
+                renderTasks();
             }
         }
     }
