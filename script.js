@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const taskForm = document.getElementById('task-form');
     const taskInput = document.getElementById('task-input');
+    const taskAzureCode = document.getElementById('task-azure-code');
     const requesterInput = document.getElementById('requester-input');
     const taskNotes = document.getElementById('task-notes');
     const dateInput = document.getElementById('date-input');
@@ -39,12 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const editModal = document.getElementById('edit-modal');
     const editTaskInput = document.getElementById('edit-task-input');
+    const editTaskAzureCode = document.getElementById('edit-task-azure-code');
     const editRequesterInput = document.getElementById('edit-requester-input');
     const editTaskNotes = document.getElementById('edit-task-notes');
     const editDateInput = document.getElementById('edit-date-input');
     const editTagSelect = document.getElementById('edit-tag-select');
     const editSubtasksList = document.getElementById('edit-subtasks-list');
     const newSubtaskInput = document.getElementById('new-subtask-input');
+    const newSubtaskAzure = document.getElementById('new-subtask-azure');
     const addSubtaskBtn = document.getElementById('add-subtask-btn');
     const btnCancelEdit = document.getElementById('cancel-edit');
     const btnConfirmEdit = document.getElementById('confirm-edit');
@@ -53,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const newTaskSubtasksList = document.getElementById('new-task-subtasks-list');
     const addSubtaskInput = document.getElementById('add-subtask-input');
+    const addSubtaskAzure = document.getElementById('add-subtask-azure');
     const directAddSubtaskBtn = document.getElementById('direct-add-subtask-btn');
     let currentNewTaskSubtasks = [];
 
@@ -170,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tagId: t.tagId || null,
                     requesters: t.requesters || [],
                     notes: t.notes || null,
+                    azureCode: t.azureCode || null,
                     completedDate: t.completedDate || null
                 }));
                 await supabase.from('tasks').upsert(tasksPayload);
@@ -183,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 id: st.id,
                                 taskId: t.id,
                                 title: st.title,
+                                azureCode: st.azureCode || null,
                                 completed: Boolean(st.completed),
                                 completedDate: st.completedDate || null
                             });
@@ -365,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 const tagBadgeHtml = taskTag ? `<span class="task-tag" style="background-color: ${taskTag.color}; color: ${getContrastYIQ(taskTag.color)}; border: 1px solid ${taskTag.color};">${taskTag.name}</span>` : '';
+                const azureLinkHtml = task.azureCode ? `<a href="https://dev.azure.com/milsenior/PORTFOLIO/_workitems/edit/${task.azureCode}" target="_blank" style="font-size: 0.8rem; background: var(--bg-surface-hover); padding: 2px 6px; border-radius: 4px; color: var(--text-main); text-decoration: none; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px;"><i class="ph ph-link"></i> #${task.azureCode}</a>` : '';
 
                 let requestersAndDateHtml = '';
                 const reqBadges = task.requesters && task.requesters.length > 0
@@ -394,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: space-between;">
                             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1;">
                                 ${tagBadgeHtml}
+                                ${azureLinkHtml}
                                 <span class="task-text">${task.title}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
@@ -442,12 +450,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         stLabel.style.padding = '2px';
                         stLabel.style.borderRadius = '4px';
 
+                        const subAzureLinkHtml = st.azureCode ? `<a href="https://dev.azure.com/milsenior/PORTFOLIO/_workitems/edit/${st.azureCode}" target="_blank" style="font-size: 0.75rem; background: var(--bg-surface-hover); padding: 0 4px; border-radius: 4px; color: var(--text-main); text-decoration: none; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; width: fit-content;"><i class="ph ph-link"></i> #${st.azureCode}</a>` : '';
+
                         stLabel.innerHTML = `
                             <div style="display: flex; align-items: flex-start; gap: 6px; width: 100%;">
                                 <i class="ph ph-dots-six-vertical" style="color: var(--text-muted); cursor: grab; margin-top: 2px;"></i>
                                 <input type="checkbox" class="subtask-checkbox checkbox-custom" style="width: 16px; height: 16px; margin-top: 1px;" data-task-id="${task.id}" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''} />
                                 <div style="display: flex; flex-direction: column; flex: 1; align-items: flex-start;">
                                     <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} word-break: break-word;" title="${st.title}">${st.title}</span>
+                                    ${subAzureLinkHtml}
                                     <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: fit-content; margin-top: 4px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? 'display: inline-block;' : 'display: none;'}" />
                                 </div>
                             </div>
@@ -582,6 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tagId = tagSelect ? tagSelect.value : '';
         const reqVal = requesterInput ? requesterInput.value.trim() : '';
         const notes = taskNotes ? taskNotes.value.trim() : '';
+        const azureCode = taskAzureCode ? taskAzureCode.value.trim() : '';
 
         if (!title) return;
 
@@ -594,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tagId,
             requesters,
             notes,
+            azureCode,
             subtasks: [...currentNewTaskSubtasks],
             completed: false
         };
@@ -602,6 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveTasks();
 
         taskInput.value = '';
+        if (taskAzureCode) taskAzureCode.value = '';
         if (requesterInput) requesterInput.value = '';
         if (taskNotes) taskNotes.value = '';
         currentNewTaskSubtasks = [];
@@ -763,6 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (task) {
             taskToEdit = id;
             editTaskInput.value = task.title;
+            if (editTaskAzureCode) editTaskAzureCode.value = task.azureCode || '';
             if (editRequesterInput) editRequesterInput.value = (task.requesters && task.requesters.length > 0) ? task.requesters.join(', ') : '';
             if (editTaskNotes) editTaskNotes.value = task.notes || '';
             editDateInput.value = task.date;
@@ -828,6 +843,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editTaskNotes) {
                 task.notes = editTaskNotes.value.trim();
             }
+            if (editTaskAzureCode) {
+                task.azureCode = editTaskAzureCode.value.trim();
+            }
             task.subtasks = currentEditSubtasks;
             saveTasks();
         }
@@ -842,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeAddTaskModal() {
         addTaskModal.classList.remove('active');
         taskInput.value = '';
+        if (taskAzureCode) taskAzureCode.value = '';
         if (requesterInput) requesterInput.value = '';
         if (taskNotes) taskNotes.value = '';
         currentNewTaskSubtasks = [];
@@ -884,13 +903,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (directAddSubtaskBtn) {
         directAddSubtaskBtn.addEventListener('click', () => {
             const val = addSubtaskInput.value.trim();
+            const azure = addSubtaskAzure ? addSubtaskAzure.value.trim() : '';
             if (val) {
                 currentNewTaskSubtasks.push({
                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                     title: val,
+                    azureCode: azure,
                     completed: false
                 });
                 addSubtaskInput.value = '';
+                if (addSubtaskAzure) addSubtaskAzure.value = '';
                 renderNewTaskSubtasks();
                 addSubtaskInput.focus();
             }
@@ -923,13 +945,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addSubtaskBtn) {
         addSubtaskBtn.addEventListener('click', () => {
             const val = newSubtaskInput.value.trim();
+            const azure = newSubtaskAzure ? newSubtaskAzure.value.trim() : '';
             if (val) {
                 currentEditSubtasks.push({
                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                     title: val,
+                    azureCode: azure,
                     completed: false
                 });
                 newSubtaskInput.value = '';
+                if (newSubtaskAzure) newSubtaskAzure.value = '';
                 renderEditSubtasks();
                 newSubtaskInput.focus();
             }

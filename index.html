@@ -38,8 +38,10 @@
         <div class="modal-content">
             <h3>Nova Atividade</h3>
             <form id="task-form">
-                <input type="text" id="task-input" placeholder="O que você precisa fazer?" required
-                    autocomplete="off" />
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="task-input" placeholder="O que você precisa fazer?" required autocomplete="off" style="flex: 1;" />
+                    <input type="text" id="task-azure-code" placeholder="ID Azure (Opc.)" autocomplete="off" style="width: 120px;" />
+                </div>
                 <input type="text" id="requester-input" placeholder="Solicitantes (separados por vírgula)"
                     autocomplete="off" />
                 <textarea id="task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="2"
@@ -50,6 +52,7 @@
                     <div style="display: flex; gap: 8px; margin-top: 8px;">
                         <input type="text" id="add-subtask-input" placeholder="Adicionar micro atividade (opcional)..."
                             autocomplete="off" style="flex: 1;" />
+                        <input type="text" id="add-subtask-azure" placeholder="ID Azure..." autocomplete="off" style="width: 100px;" />
                         <button type="button" class="btn-secondary" id="direct-add-subtask-btn"
                             style="padding: 6px 12px;">Add</button>
                     </div>
@@ -103,8 +106,10 @@
     <div class="modal-overlay" id="edit-modal">
         <div class="modal-content">
             <h3>Editar Atividade</h3>
-            <input type="text" id="edit-task-input" placeholder="O que você precisa fazer?" required
-                autocomplete="off" />
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="edit-task-input" placeholder="O que você precisa fazer?" required autocomplete="off" style="flex: 1;" />
+                <input type="text" id="edit-task-azure-code" placeholder="ID Azure (Opc.)" autocomplete="off" style="width: 120px;" />
+            </div>
             <input type="text" id="edit-requester-input" placeholder="Solicitantes (separados por vírgula)"
                 autocomplete="off" />
             <textarea id="edit-task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="3"
@@ -121,6 +126,7 @@
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="new-subtask-input" placeholder="Novo checkpoint..." autocomplete="off"
                         style="flex: 1;" />
+                    <input type="text" id="new-subtask-azure" placeholder="ID Azure..." autocomplete="off" style="width: 100px;" />
                     <button type="button" class="btn-secondary" id="add-subtask-btn"
                         style="padding: 6px 12px;">Add</button>
                 </div>
