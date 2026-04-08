@@ -51,8 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addSubtaskBtn = document.getElementById('add-subtask-btn');
     const btnCancelEdit = document.getElementById('cancel-edit');
     const btnConfirmEdit = document.getElementById('confirm-edit');
+    
+    const commentsList = document.getElementById('comments-list');
+    const newCommentInput = document.getElementById('new-comment-input');
+    const addCommentBtn = document.getElementById('add-comment-btn');
+    
     let taskToEdit = null;
     let currentEditSubtasks = [];
+    let currentEditComments = [];
 
     const newTaskSubtasksList = document.getElementById('new-task-subtasks-list');
     const addSubtaskInput = document.getElementById('add-subtask-input');
@@ -175,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     requesters: t.requesters || [],
                     notes: t.notes || null,
                     azureCode: t.azureCode || null,
+                    comments: t.comments || [],
                     completedDate: t.completedDate || null
                 }));
                 await supabase.from('tasks').upsert(tasksPayload);
@@ -609,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
             requesters,
             notes,
             azureCode,
+            comments: [],
             subtasks: [...currentNewTaskSubtasks],
             completed: false
         };
@@ -785,7 +793,11 @@ document.addEventListener('DOMContentLoaded', () => {
             editDateInput.value = task.date;
             editTagSelect.value = task.tagId || '';
             currentEditSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
+            currentEditComments = task.comments ? JSON.parse(JSON.stringify(task.comments)) : [];
+            
             renderEditSubtasks();
+            renderEditComments();
+            
             editModal.classList.add('active');
             editTaskInput.focus();
         }
@@ -824,6 +836,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderEditComments() {
+        if (!commentsList) return;
+        commentsList.innerHTML = '';
+        currentEditComments.forEach(comment => {
+            const div = document.createElement('div');
+            div.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+            div.style.padding = '10px';
+            div.style.borderRadius = '8px';
+            div.style.border = '1px solid var(--border)';
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.gap = '4px';
+
+            const dateLabel = new Date(comment.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            
+            div.innerHTML = `
+                <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>${dateLabel}</span>
+                    <i class="ph ph-trash" style="cursor: pointer; color: var(--danger)" title="Excluir" data-id="${comment.id}"></i>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.4;">
+                    ${comment.text.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            
+            const delBtn = div.querySelector('.ph-trash');
+            delBtn.addEventListener('click', () => {
+                currentEditComments = currentEditComments.filter(c => c.id !== comment.id);
+                renderEditComments();
+            });
+
+            commentsList.appendChild(div);
+        });
+    }
+
     function closeEditModal() {
         editModal.classList.remove('active');
         taskToEdit = null;
@@ -849,6 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 task.azureCode = editTaskAzureCode.value.trim();
             }
             task.subtasks = currentEditSubtasks;
+            task.comments = currentEditComments;
             saveTasks();
         }
         closeEditModal();
@@ -966,6 +1014,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 addSubtaskBtn.click();
+            }
+        });
+    }
+
+    if (addCommentBtn) {
+        addCommentBtn.addEventListener('click', () => {
+            const text = newCommentInput.value.trim();
+            if (text) {
+                currentEditComments.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    text: text,
+                    createdAt: new Date().toISOString()
+                });
+                newCommentInput.value = '';
+                // Render list and scroll to bottom
+                renderEditComments();
+                setTimeout(() => commentsList.scrollTop = commentsList.scrollHeight, 10);
             }
         });
     }

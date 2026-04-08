@@ -35,26 +35,27 @@
 
     <!-- Modal for Adding Task -->
     <div class="modal-overlay" id="add-task-modal">
-        <div class="modal-content">
-            <h3>Nova Atividade</h3>
-            <form id="task-form">
+        <form class="modal-content" id="task-form" style="padding: 0; overflow: hidden; max-height: 90vh;">
+            <div class="modal-header" style="padding: 24px 24px 16px 24px; border-bottom: 1px solid var(--border);">
+                <h3>Nova Atividade</h3>
+            </div>
+            
+            <div class="modal-body" style="padding: 16px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="task-azure-code" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
                     <input type="text" id="task-input" placeholder="O que você precisa fazer?" required autocomplete="off" style="flex: 1;" />
                 </div>
-                <input type="text" id="requester-input" placeholder="Solicitantes (separados por vírgula)"
-                    autocomplete="off" />
-                <textarea id="task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="2"
-                    style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-primary); margin-top: 8px; resize: vertical; box-sizing: border-box;"></textarea>
+                <input type="text" id="requester-input" placeholder="Solicitantes (separados por vírgula)" autocomplete="off" />
+                <textarea id="task-notes" placeholder="Descrição da atividade..." rows="2"
+                    style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-main); resize: vertical; box-sizing: border-box;"></textarea>
 
-                <div class="new-subtasks-container" style="margin-top: 12px; margin-bottom: 8px;">
+                <div class="new-subtasks-container" style="margin-top: 4px;">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 4px; color: var(--text-muted);">Checkpoints</h4>
                     <div id="new-task-subtasks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
                     <div style="display: flex; gap: 8px; margin-top: 8px;">
                         <input type="text" id="add-subtask-azure" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
-                        <input type="text" id="add-subtask-input" placeholder="Adicionar micro atividade (opcional)..."
-                            autocomplete="off" style="flex: 1;" />
-                        <button type="button" class="btn-secondary" id="direct-add-subtask-btn"
-                            style="padding: 6px 12px;">Add</button>
+                        <input type="text" id="add-subtask-input" placeholder="Adicionar micro atividade..." autocomplete="off" style="flex: 1;" />
+                        <button type="button" class="btn-secondary" id="direct-add-subtask-btn" style="padding: 6px 12px;">Add</button>
                     </div>
                 </div>
 
@@ -67,13 +68,15 @@
                     </button>
                     <input type="date" id="date-input" title="Deixe em branco para o Backlog" />
                 </div>
+            </div>
 
-                <div class="modal-actions">
+            <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border); background-color: var(--bg-dark); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);">
+                <div class="modal-actions" style="margin-top: 0;">
                     <button type="button" class="btn-secondary" id="cancel-add-task">Cancelar</button>
                     <button type="submit" class="btn-primary">Salvar</button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 
     <!-- Modal for Rescheduling -->
@@ -104,37 +107,55 @@
 
     <!-- Modal for Editing Task -->
     <div class="modal-overlay" id="edit-modal">
-        <div class="modal-content">
-            <h3>Editar Atividade</h3>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="edit-task-azure-code" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
-                <input type="text" id="edit-task-input" placeholder="O que você precisa fazer?" required autocomplete="off" style="flex: 1;" />
+        <div class="modal-content" style="padding: 0; overflow: hidden; max-height: 90vh;">
+            <div class="modal-header" style="padding: 24px 24px 16px 24px; border-bottom: 1px solid var(--border);">
+                <h3>Editar Atividade</h3>
             </div>
-            <input type="text" id="edit-requester-input" placeholder="Solicitantes (separados por vírgula)"
-                autocomplete="off" />
-            <textarea id="edit-task-notes" placeholder="Comentários ou Observações (Opcional)..." rows="3"
-                style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-primary); margin-top: 8px; margin-bottom: 8px; resize: vertical; box-sizing: border-box;"></textarea>
-            <input type="date" id="edit-date-input" title="Data da atividade" />
-            <select id="edit-tag-select" title="Selecione uma etiqueta" class="select-custom" style="width: 100%;">
-                <option value="">Sem tag</option>
-            </select>
-
-            <div class="edit-subtasks-container">
-                <h4 style="font-size: 0.9rem; margin-bottom: 4px; color: var(--text-muted);">Checkpoints</h4>
-                <div id="edit-subtasks-list"
-                    style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"></div>
+            
+            <div class="modal-body" style="padding: 16px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;">
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="new-subtask-azure" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
-                    <input type="text" id="new-subtask-input" placeholder="Novo checkpoint..." autocomplete="off"
-                        style="flex: 1;" />
-                    <button type="button" class="btn-secondary" id="add-subtask-btn"
-                        style="padding: 6px 12px;">Add</button>
+                    <input type="text" id="edit-task-azure-code" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
+                    <input type="text" id="edit-task-input" placeholder="O que você precisa fazer?" required autocomplete="off" style="flex: 1;" />
+                </div>
+                <input type="text" id="edit-requester-input" placeholder="Solicitantes (separados por vírgula)" autocomplete="off" />
+                
+                <textarea id="edit-task-notes" placeholder="Descrição da atividade..." rows="3"
+                    style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: inherit; font-size: 0.9rem; background: var(--bg-surface); color: var(--text-main); resize: vertical; box-sizing: border-box;"></textarea>
+
+                <div style="display: flex; gap: 8px;">
+                    <input type="date" id="edit-date-input" title="Data da atividade" style="flex: 1;" />
+                    <select id="edit-tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1;">
+                        <option value="">Sem tag</option>
+                    </select>
+                </div>
+
+                <div class="edit-subtasks-container" style="margin-top: 4px;">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 4px; color: var(--text-muted);">Checkpoints</h4>
+                    <div id="edit-subtasks-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="new-subtask-azure" placeholder="Azure ID" autocomplete="off" style="width: 75px;" />
+                        <input type="text" id="new-subtask-input" placeholder="Novo checkpoint..." autocomplete="off" style="flex: 1;" />
+                        <button type="button" class="btn-secondary" id="add-subtask-btn" style="padding: 6px 12px;">Add</button>
+                    </div>
+                </div>
+
+                <div class="edit-comments-section" style="margin-top: 8px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 8px; color: var(--text-muted);">Comentários</h4>
+                    <div id="comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; max-height: 200px; overflow-y: auto;">
+                        <!-- Comentários injetados aqui -->
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <textarea id="new-comment-input" placeholder="Adicionar um comentário..." rows="2" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: inherit; font-size: 0.85rem; background: var(--bg-dark); color: var(--text-main); resize: vertical; box-sizing: border-box;"></textarea>
+                        <button type="button" class="btn-secondary" id="add-comment-btn" style="padding: 8px 16px; align-self: flex-end;">Comentar</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="modal-actions">
-                <button class="btn-secondary" id="cancel-edit">Cancelar</button>
-                <button class="btn-primary" id="confirm-edit">Salvar</button>
+            <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border); background-color: var(--bg-dark); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);">
+                <div class="modal-actions" style="margin-top: 0;">
+                    <button class="btn-secondary" id="cancel-edit">Cancelar</button>
+                    <button class="btn-primary" id="confirm-edit">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
