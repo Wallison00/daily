@@ -431,7 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 azureCode: st.azureCode || null,
                                 completed: Boolean(st.completed),
                                 completedDate: st.completedDate || null,
-                                orderIndex: stIndex
+                                orderIndex: stIndex,
+                                startDate: st.startDate || null,
+                                endDate: st.endDate || null
                             });
                         });
                     }
@@ -441,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const { error: subErr } = await supabase.from('subtasks').upsert(allSubtasks);
                     if (subErr) {
                         console.error("Erro no upsert de subtasks:", subErr);
-                        const fallbackSubtasks = allSubtasks.map(({ orderIndex, ...rest }) => rest);
+                        const fallbackSubtasks = allSubtasks.map(({ orderIndex, startDate, endDate, ...rest }) => rest);
                         await supabase.from('subtasks').upsert(fallbackSubtasks).catch(e => console.error(e));
                     }
                 }
