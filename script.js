@@ -80,6 +80,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Sidebar logic
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+    if (sidebar && toggleSidebarBtn) {
+        const sidebarTitle = sidebar.querySelector('.sidebar-title');
+        const sidebarTexts = sidebar.querySelectorAll('.sidebar-item-text');
+
+        toggleSidebarBtn.addEventListener('click', () => {
+            const isCollapsed = sidebar.style.width === '64px';
+            if (isCollapsed) {
+                sidebar.style.width = '240px';
+                sidebarTitle.style.opacity = '1';
+                setTimeout(() => sidebarTexts.forEach(t => t.style.opacity = '1'), 150);
+            } else {
+                sidebar.style.width = '64px';
+                sidebarTitle.style.opacity = '0';
+                sidebarTexts.forEach(t => t.style.opacity = '0');
+            }
+        });
+    }
+
+    // View Navigation
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    const viewDaily = document.getElementById('view-daily');
+    const viewGantt = document.getElementById('view-gantt');
+
+    sidebarItems.forEach(item => {
+        item.addEventListener('click', () => {
+            sidebarItems.forEach(i => {
+                i.classList.remove('active');
+                i.style.background = 'transparent';
+                i.style.color = 'var(--text-muted)';
+                i.style.borderLeftColor = 'transparent';
+            });
+            item.classList.add('active');
+            item.style.background = 'rgba(59, 130, 246, 0.1)';
+            item.style.color = 'var(--accent)';
+            item.style.borderLeftColor = 'var(--accent)';
+
+            const view = item.dataset.view;
+            if (view === 'daily') {
+                if (viewDaily) viewDaily.style.display = 'flex';
+                if (viewGantt) viewGantt.style.display = 'none';
+            } else if (view === 'gantt') {
+                if (viewDaily) viewDaily.style.display = 'none';
+                if (viewGantt) viewGantt.style.display = 'flex';
+                // TODO: trigger gantt rendering
+            }
+        });
+    });
+
     // Global listener to close dropdowns
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions-wrapper')) {
