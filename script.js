@@ -928,6 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ganttContainer = document.getElementById('gantt-container');
         if (!ganttContainer) return;
 
+        try {
         ganttContainer.innerHTML = '';
         
         let minDate = new Date();
@@ -1291,6 +1292,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     backlogContainer.appendChild(card);
                 });
             }
+        }
+        } catch (e) {
+            ganttContainer.innerHTML = `<div style="padding: 24px; color: #ef4444;">Erro ao renderizar Gantt: ${e.message}<br><br><pre>${e.stack}</pre></div>`;
+            console.error("Gantt Render Error:", e);
         }
     }
 
