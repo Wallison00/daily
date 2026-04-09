@@ -145,6 +145,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let ganttDragState = {
+        isDragging: false,
+        isResizing: false,
+        activeBar: null,
+        startX: 0,
+        startLeft: 0,
+        startWidth: 0,
+        resizeDir: '',
+        dayWidth: 48,
+        minDate: null
+    };
+
+    document.addEventListener('mousemove', (e) => {
+        if (!ganttDragState.activeBar) return;
+        const diffX = e.clientX - ganttDragState.startX;
+        if (ganttDragState.isDragging) {
+            const newLeft = Math.max(0, ganttDragState.startLeft + diffX);
+            ganttDragState.activeBar.style.left = `${newLeft}px`;
+        } else if (ganttDragState.isResizing) {
+            if (ganttDragState.resizeDir === 'left') {
+                let newLeft = ganttDragState.startLeft + diffX;
+                let newWidth = ganttDragState.startWidth - (newLeft - ganttDragState.startLeft);
+                if (newLeft < 0) {
+                    newWidth = ganttDragState.startWidth + ganttDragState.startLeft;
+                    newLeft = 0;
+                }
+                if (newWidth < ganttDragState.dayWidth) {
+                    newWidth = ganttDragState.dayWidth;
+                    newLeft = ganttDragState.startLeft + ganttDragState.startWidth - ganttDragState.dayWidth;
+                }
+                ganttDragState.activeBar.style.left = `${newLeft}px`;
+                ganttDragState.activeBar.style.width = `${newWidth}px`;
+            } else if (ganttDragState.resizeDir === 'right') {
+                const newWidth = Math.max(ganttDragState.dayWidth, ganttDragState.startWidth + diffX);
+                ganttDragState.activeBar.style.width = `${newWidth}px`;
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (ganttDragState.activeBar && (ganttDragState.isDragging || ganttDragState.isResizing)) {
+            const finalLeft = parseInt(ganttDragState.activeBar.style.left || 0);
+            const finalWidth = parseInt(ganttDragState.activeBar.style.width || 0);
+            
+            const startDaysOff = Math.round(finalLeft / ganttDragState.dayWidth);
+            const durationDays = Math.round(finalWidth / ganttDragState.dayWidth) - 1;
+
+            const newStart = new Date(ganttDragState.minDate);
+            newStart.setDate(newStart.getDate() + startDaysOff);
+            const newEnd = new Date(newStart);
+            newEnd.setDate(newEnd.getDate() + durationDays);
+
+            const taskId = ganttDragState.activeBar.dataset.id;
+            const task = tasks.find(t => t.id === taskId);
+            
+            ganttDragState.isDragging = false;
+            ganttDragState.isResizing = false;
+            ganttDragState.activeBar.style.cursor = 'grab';
+            ganttDragState.activeBar = null;
+            document.body.style.cursor = 'default';
+
+            if (task) {
+                task.startDate = formatToYYYYMMDD(newStart);
+                task.endDate = formatToYYYYMMDD(newEnd);
+                saveTasks();
+            }
+        }
+    });
+
     // Initialize dates
     const today = new Date();
     const todayStr = formatToYYYYMMDD(today);
@@ -257,13 +326,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     azureCode: t.azureCode || null,
                     comments: t.comments || [],
                     completedDate: t.completedDate || null,
-                    orderIndex: index
+                    orderIndex: index,
+                    startDate: t.startDate || null,
+                    endDate: t.endDate || null
                 }));
                 const { error: tasksErr } = await supabase.from('tasks').upsert(tasksPayload);
                 if (tasksErr) {
-                    console.error("Erro no upsert de tasks (possível falta de orderIndex):", tasksErr);
-                    // Fallback para caso o usuário não tenha rodado o SQL do orderIndex
-                    const fallbackTaskPayload = tasksPayload.map(({ orderIndex, ...rest }) => rest);
+                    console.error("Erro no upsert de tasks (possível falta de orderIndex, startDate ou endDate):", tasksErr);
+                    // Fallback para caso o usuário não tenha rodado o SQL dessas colunas
+                    const fallbackTaskPayload = tasksPayload.map(({ orderIndex, startDate, endDate, ...rest }) => rest);
                     const { error: fallbackErr } = await supabase.from('tasks').upsert(fallbackTaskPayload);
                     if (fallbackErr) console.error("Falha fatal no upsert de tasks (fallback):", fallbackErr);
                 }
@@ -770,6 +841,192 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hasRenderedTask) {
             tasksContainer.innerHTML = '<div style="text-align:center;color:var(--text-muted);margin-top:24px;font-size:0.9rem;">Nenhuma atividade cadastrada ou todas estão concluídas.</div>';
         }
+        
+        renderGantt();
+    }
+
+    function renderGantt() {
+        const ganttContainer = document.getElementById('gantt-container');
+        if (!ganttContainer) return;
+
+        ganttContainer.innerHTML = '';
+        
+        let minDate = new Date();
+        minDate.setDate(minDate.getDate() - 7);
+        let maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 14);
+
+        const tasksWithDates = tasks.filter(t => t.startDate && t.endDate);
+        if (tasksWithDates.length > 0) {
+            tasksWithDates.forEach(t => {
+                const sTemp = parseYYYYMMDD(t.startDate);
+                const eTemp = parseYYYYMMDD(t.endDate);
+                if (sTemp < minDate) { minDate = new Date(sTemp); minDate.setDate(minDate.getDate() - 7); }
+                if (eTemp > maxDate) { maxDate = new Date(eTemp); maxDate.setDate(maxDate.getDate() + 7); }
+            });
+        }
+
+        minDate.setHours(0,0,0,0);
+        maxDate.setHours(0,0,0,0);
+        
+        const dayWidth = 48;
+        const totalDays = Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1;
+        const totalWidth = totalDays * dayWidth;
+
+        let timelineHTML = `<div class="gantt-timeline-header" style="display: flex; width: ${totalWidth}px; border-bottom: 1px solid var(--border); box-sizing: content-box;">`;
+        let backgroundsHTML = `<div class="gantt-background" style="display: flex; position: absolute; top: 0; left: 0; bottom: 0; width: ${totalWidth}px; pointer-events: none; z-index: 0;">`;
+        
+        const todayStr = formatToYYYYMMDD(new Date());
+        let todayOffsetLeft = 0;
+
+        for (let i = 0; i < totalDays; i++) {
+            let current = new Date(minDate);
+            current.setDate(current.getDate() + i);
+            let cDateStr = formatToYYYYMMDD(current);
+            let isToday = cDateStr === todayStr;
+
+            if (isToday) {
+                todayOffsetLeft = i * dayWidth;
+            }
+
+            const dayName = current.toLocaleDateString('pt-BR', { weekday: 'short' });
+            const dayNum = current.getDate();
+
+            timelineHTML += `
+                <div style="width: ${dayWidth}px; flex-shrink: 0; text-align: center; border-right: 1px solid var(--border); padding: 4px 0; background: ${isToday ? 'rgba(59, 130, 246, 0.1)' : 'transparent'};">
+                    <div style="font-size: 0.65rem; color: ${isToday ? 'var(--accent)' : 'var(--text-muted)'}; text-transform: uppercase;">${dayName}</div>
+                    <div style="font-size: 0.85rem; font-weight: ${isToday ? 'bold' : 'normal'}; color: ${isToday ? 'var(--text-main)' : 'var(--text-muted)'};">${dayNum}</div>
+                </div>
+            `;
+            
+            backgroundsHTML += `<div style="width: ${dayWidth}px; flex-shrink: 0; border-right: 1px solid var(--border); background: ${isToday ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};"></div>`;
+        }
+        timelineHTML += `</div>`;
+        backgroundsHTML += `</div>`;
+
+        let todayLineHTML = '';
+        if (todayOffsetLeft > 0) {
+            todayLineHTML = `<div class="gantt-today-line" style="position: absolute; left: ${todayOffsetLeft + dayWidth/2}px; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 2; pointer-events: none;"></div>`;
+        }
+
+        const defaultTag = { id: '', name: 'Sem projeto', color: '#64748b' };
+        let allTags = [...tags, defaultTag];
+        
+        const ft = document.getElementById('filter-tag-select');
+        let searchTagVal = ft ? ft.value : '';
+        if (searchTagVal) {
+            allTags = allTags.filter(t => t.id === searchTagVal);
+        }
+
+        const rowsHTML = [];
+
+        allTags.forEach(tag => {
+            const tagTasks = tasksWithDates.filter(t => (t.tagId === tag.id) || (!t.tagId && tag.id === ''));
+            if (tagTasks.length === 0) return;
+
+            let rowHeader = `<div style="font-family: inherit; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; padding: 0 16px; background: var(--bg-surface); position: sticky; left: 0; z-index: 5; border-right: 1px solid var(--border); width: 200px; border-bottom: 1px solid var(--border);">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: ${tag.color}; flex-shrink: 0; margin-right: 8px;"></div>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tag.name}">${tag.name}</span>
+            </div>`;
+
+            let rowBarsHTML = tagTasks.map((t, idx) => {
+                const sTemp = parseYYYYMMDD(t.startDate);
+                const eTemp = parseYYYYMMDD(t.endDate);
+                const startOffDays = Math.round((sTemp - minDate) / (1000 * 60 * 60 * 24));
+                const lengthDays = Math.round((eTemp - sTemp) / (1000 * 60 * 60 * 24)) + 1;
+
+                const left = startOffDays * dayWidth;
+                const width = lengthDays * dayWidth;
+
+                const barColor = t.completed ? 'var(--success)' : tag.color;
+                
+                return `
+                    <div class="gantt-bar-item" data-id="${t.id}" style="position: absolute; top: ${8 + (idx * 36)}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
+                        <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
+                        <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
+                        <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
+                    </div>
+                `;
+            }).join('');
+
+            const rowHeight = Math.max(tagTasks.length * 36 + 16, 60);
+
+            rowsHTML.push(`
+                <div class="gantt-row" style="display: flex; min-height: ${rowHeight}px; border-bottom: 1px solid var(--border); box-sizing: content-box; position: relative; width: ${totalWidth + 200}px;">
+                    ${rowHeader}
+                    <div class="gantt-bars-container" style="position: relative; width: ${totalWidth}px; flex-shrink: 0;">
+                        ${rowBarsHTML}
+                    </div>
+                </div>
+            `);
+        });
+
+        ganttContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; position: relative; width: fit-content; min-width: 100%;">
+                <div style="display: flex; position: sticky; top: 0; z-index: 10; background: var(--bg-dark);">
+                    <div style="width: 200px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-surface); position: sticky; left: 0; z-index: 11; border-bottom: 1px solid var(--border);"></div>
+                    ${timelineHTML}
+                </div>
+                <div style="position: relative;">
+                    <div style="position: absolute; left: 200px; right: 0; top: 0; bottom: 0; pointer-events: none; z-index: 1;">
+                        ${backgroundsHTML}
+                        ${todayLineHTML}
+                    </div>
+                    ${rowsHTML.length > 0 ? rowsHTML.join('') : '<div style="padding: 24px;">Nenhuma atividade com Início e Fim definidos para essa visão. Edite uma atividade para definir seu período no Gantt!</div>'}
+                </div>
+            </div>
+        `;
+
+        if (!ganttContainer.dataset.initialized && todayOffsetLeft > 0) {
+            requestAnimationFrame(() => {
+                ganttContainer.scrollLeft = todayOffsetLeft - ganttContainer.clientWidth / 2 + 200;
+                ganttContainer.dataset.initialized = 'true';
+            });
+        }
+
+        ganttDragState.minDate = minDate;
+        ganttDragState.dayWidth = dayWidth;
+
+        const bars = ganttContainer.querySelectorAll('.gantt-bar-item');
+        bars.forEach(bar => {
+            const handleLeft = bar.querySelector('.gantt-handle-left');
+            const handleRight = bar.querySelector('.gantt-handle-right');
+
+            bar.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('gantt-handle')) return;
+                e.preventDefault();
+                ganttDragState.isDragging = true;
+                ganttDragState.activeBar = bar;
+                ganttDragState.startX = e.clientX;
+                ganttDragState.startLeft = parseInt(bar.style.left || 0);
+                ganttDragState.startWidth = parseInt(bar.style.width || 0);
+                bar.style.cursor = 'grabbing';
+            });
+
+            handleLeft.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                ganttDragState.isResizing = true;
+                ganttDragState.resizeDir = 'left';
+                ganttDragState.activeBar = bar;
+                ganttDragState.startX = e.clientX;
+                ganttDragState.startLeft = parseInt(bar.style.left || 0);
+                ganttDragState.startWidth = parseInt(bar.style.width || 0);
+                document.body.style.cursor = 'ew-resize';
+            });
+
+            handleRight.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                ganttDragState.isResizing = true;
+                ganttDragState.resizeDir = 'right';
+                ganttDragState.activeBar = bar;
+                ganttDragState.startX = e.clientX;
+                ganttDragState.startLeft = parseInt(bar.style.left || 0);
+                ganttDragState.startWidth = parseInt(bar.style.width || 0);
+                document.body.style.cursor = 'ew-resize';
+            });
+        });
     }
 
     // Handlers
@@ -808,6 +1065,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const reqVal = requesterInput ? requesterInput.value.trim() : '';
         const notes = taskNotes ? taskNotes.value.trim() : '';
         const azureCode = taskAzureCode ? taskAzureCode.value.trim() : '';
+        const startDate = document.getElementById('start-date-input') ? document.getElementById('start-date-input').value : '';
+        const endDate = document.getElementById('end-date-input') ? document.getElementById('end-date-input').value : '';
 
         if (!title) return;
 
@@ -823,7 +1082,9 @@ document.addEventListener('DOMContentLoaded', () => {
             azureCode,
             comments: [],
             subtasks: [...currentNewTaskSubtasks],
-            completed: false
+            completed: false,
+            startDate,
+            endDate
         };
 
         if (columnTarget) {
@@ -1036,6 +1297,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editTaskNotes) editTaskNotes.value = task.notes || '';
             editDateInput.value = task.date;
             editTagSelect.value = task.tagId || '';
+            
+            const editStartDateInput = document.getElementById('edit-start-date-input');
+            const editEndDateInput = document.getElementById('edit-end-date-input');
+            if (editStartDateInput) editStartDateInput.value = task.startDate || '';
+            if (editEndDateInput) editEndDateInput.value = task.endDate || '';
+
             const colSelect = document.getElementById('edit-column-select');
             if (colSelect) {
                 const todayStr = formatToYYYYMMDD(new Date());
@@ -1210,6 +1477,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editTaskAzureCode) {
                 task.azureCode = editTaskAzureCode.value.trim();
             }
+            const editStartDateStr = document.getElementById('edit-start-date-input') ? document.getElementById('edit-start-date-input').value : '';
+            const editEndDateStr = document.getElementById('edit-end-date-input') ? document.getElementById('edit-end-date-input').value : '';
+            task.startDate = editStartDateStr;
+            task.endDate = editEndDateStr;
+
             task.subtasks = currentEditSubtasks;
             task.comments = currentEditComments;
             saveTasks();

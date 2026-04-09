@@ -113,8 +113,8 @@
                     </div>
                 </div>
 
-                <div class="form-controls">
-                    <select id="column-select" class="select-custom" style="flex: 1;" title="Coluna de destino">
+                <div class="form-controls" style="flex-wrap: wrap;">
+                    <select id="column-select" class="select-custom" style="flex: 1; min-width: 120px;" title="Coluna de destino">
                         <option value="">Manter Data (Automático)</option>
                         <option value="backlog">Backlog</option>
                         <option value="pendentes">Pendentes</option>
@@ -122,13 +122,24 @@
                         <option value="em_desenvolvimento">Em Desenvolvimento</option>
                         <option value="concluidos">Concluídos</option>
                     </select>
-                    <input type="date" id="date-input" title="Deixe em branco para o Backlog" style="flex: 1;" />
-                    <select id="tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1;">
+                    <input type="date" id="date-input" title="Data da Atividade (Feed)" style="flex: 1; min-width: 120px;" />
+                    <select id="tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1; min-width: 120px;">
                         <option value="">Sem tag</option>
                     </select>
                     <button type="button" class="btn-icon" id="add-tag-btn" title="Nova tag">
                         <i class="ph ph-tag ph-lg"></i>
                     </button>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Início (Gantt)</label>
+                        <input type="date" id="start-date-input" title="Data de Início" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; background: var(--bg-surface); color: var(--text-main);" />
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Fim (Gantt)</label>
+                        <input type="date" id="end-date-input" title="Data de Fim" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; background: var(--bg-surface); color: var(--text-main);" />
+                    </div>
                 </div>
             </div>
 
@@ -197,6 +208,17 @@
                     <select id="edit-tag-select" title="Selecione uma etiqueta" class="select-custom" style="flex: 1;">
                         <option value="">Sem tag</option>
                     </select>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Início (Gantt)</label>
+                        <input type="date" id="edit-start-date-input" title="Data de Início" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; background: var(--bg-surface); color: var(--text-main);" />
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Fim (Gantt)</label>
+                        <input type="date" id="edit-end-date-input" title="Data de Fim" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; background: var(--bg-surface); color: var(--text-main);" />
+                    </div>
                 </div>
 
                 <div class="edit-subtasks-container" style="margin-top: 4px;">
