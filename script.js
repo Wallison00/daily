@@ -131,6 +131,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Backlog Collapsible logic
+    const toggleBacklogHeader = document.getElementById('toggle-backlog-header');
+    const backlogSection = document.getElementById('gantt-backlog-section');
+    const toggleBacklogIcon = document.getElementById('toggle-backlog-icon');
+    if (toggleBacklogHeader && backlogSection && toggleBacklogIcon) {
+        toggleBacklogHeader.addEventListener('click', () => {
+            // Check current height without transition interference
+            const isCollapsed = backlogSection.style.height === '49px' || backlogSection.getBoundingClientRect().height < 100;
+            if (isCollapsed) {
+                backlogSection.style.height = '220px';
+                toggleBacklogIcon.style.transform = 'rotate(0deg)';
+            } else {
+                backlogSection.style.height = '49px';
+                toggleBacklogIcon.style.transform = 'rotate(-180deg)';
+            }
+        });
+    }
+
     // Global listener to close dropdowns
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions-wrapper')) {
@@ -958,12 +976,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const tagTasks = tasksWithDates.filter(t => (t.tagId === tag.id) || (!t.tagId && tag.id === ''));
             if (tagTasks.length === 0) return;
 
+            // Ordenar por data inicial para otimizar os tracks
+            tagTasks.sort((a, b) => parseYYYYMMDD(a.startDate) - parseYYYYMMDD(b.startDate));
+
             let rowHeader = `<div style="font-family: inherit; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; padding: 0 16px; background: var(--bg-surface); position: sticky; left: 0; z-index: 5; border-right: 1px solid var(--border); width: 200px; border-bottom: 1px solid var(--border);">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: ${tag.color}; flex-shrink: 0; margin-right: 8px;"></div>
                 <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tag.name}">${tag.name}</span>
             </div>`;
 
-            let rowBarsHTML = tagTasks.map((t, idx) => {
+            let tracks = []; // array to track the explicit End Date of the last task placed in each track
+
+            let rowBarsHTML = tagTasks.map((t) => {
                 const sTemp = parseYYYYMMDD(t.startDate);
                 const eTemp = parseYYYYMMDD(t.endDate);
                 const startOffDays = Math.round((sTemp - minDate) / (1000 * 60 * 60 * 24));
@@ -972,10 +995,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const left = startOffDays * dayWidth;
                 const width = lengthDays * dayWidth;
 
+                // Find track line
+                let trackIndex = -1;
+                for (let i = 0; i < tracks.length; i++) {
+                    if (sTemp > tracks[i]) {
+                        trackIndex = i;
+                        break;
+                    }
+                }
+                if (trackIndex === -1) {
+                    trackIndex = tracks.length;
+                    tracks.push(eTemp);
+                } else {
+                    tracks[trackIndex] = eTemp;
+                }
+
+                const top = 8 + (trackIndex * 36);
                 const barColor = t.completed ? 'var(--success)' : tag.color;
                 
                 return `
-                    <div class="gantt-bar-item" data-id="${t.id}" style="position: absolute; top: ${8 + (idx * 36)}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
+                    <div class="gantt-bar-item" data-id="${t.id}" style="position: absolute; top: ${top}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
                         <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
                         <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                         <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
@@ -983,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
 
-            const rowHeight = Math.max(tagTasks.length * 36 + 16, 60);
+            const rowHeight = Math.max(tracks.length * 36 + 16, 60);
 
             rowsHTML.push(`
                 <div class="gantt-row" style="display: flex; min-height: ${rowHeight}px; border-bottom: 1px solid var(--border); box-sizing: content-box; position: relative; width: ${totalWidth + 200}px;">
