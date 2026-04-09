@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tags = [];
     let taskToReschedule = null;
     let columnDateFilters = { pendentes: '', concluidos: '' };
+    window.ganttExpandedTasks = window.ganttExpandedTasks || new Set();
 
     // Elements
     const fabAddTask = document.getElementById('fab-add-task');
