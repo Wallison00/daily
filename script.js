@@ -1109,29 +1109,35 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="gantt-expand-btn" data-id="${t.id}" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; background: rgba(255,255,255,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
                             <i class="ph ${isExpanded ? 'ph-caret-up' : 'ph-caret-down'}" style="font-size: 0.75rem; color: #fff; pointer-events: none;"></i>
                         </div>` : '';
-                let subtasksListHtml = '';
-                if (t.subtasks && t.subtasks.length > 0) {
-                    const completedCount = t.subtasks.filter(s => s.completed).length;
-                    subtasksListHtml = `
-                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Checkpoints (${completedCount}/${t.subtasks.length}):</strong>
-                        <ul style="padding-left:16px; margin:0; font-size:0.75rem; color:var(--text-muted);">
-                            ${t.subtasks.map(s => `<li style="margin-bottom:2px;">${s.completed ? `<strike style="color:var(--success)">${s.title}</strike>` : s.title}</li>`).join('')}
-                        </ul>
-                    </div>`;
-                }
+                    let etapa = '';
+                    if (t.completed) etapa = 'Concluído';
+                    else if (!t.date) etapa = 'Backlog';
+                    else if (t.date < todayStr) etapa = 'Pendente';
+                    else if (t.date === todayStr) etapa = 'Hoje';
+                    else etapa = 'Em Desenvolvimento';
+
+                    let subtasksListHtml = '';
+                    if (t.subtasks && t.subtasks.length > 0) {
+                        const completedCount = t.subtasks.filter(s => s.completed).length;
+                        subtasksListHtml = `
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Checkpoints (${completedCount}/${t.subtasks.length}):</strong>
+                            <ul style="padding-left:16px; margin:0; font-size:0.75rem; color:var(--text-muted);">
+                                ${t.subtasks.map(s => `<li style="margin-bottom:2px;">${s.completed ? `<strike style="color:var(--success)">${s.title}</strike>` : s.title}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                    }
 
                     return `
                         <div class="gantt-bar-item gantt-tooltip-container" data-type="task" data-id="${t.id}" style="position: absolute; top: ${8 + item.absoluteY}px; left: ${item.left}px; width: ${item.width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 26px 0 8px; z-index: 3; transition: background 0.2s;">
                             <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
                             ${expandBtn}
-                            ${subtasksListHtml ? `
                             <div class="gantt-tooltip">
                                 <strong style="color: #fff; font-size: 0.85rem; display: block; margin-bottom: 2px;">${t.title}</strong>
+                                <span style="color: var(--accent); font-size: 0.7rem; display: block; margin-bottom: 2px;">Etapa: ${etapa}</span>
                                 <span style="color: var(--text-muted); font-size: 0.7rem;">${t.startDate.split('-').reverse().join('/')} - ${t.endDate.split('-').reverse().join('/')}</span>
                                 ${subtasksListHtml}
                             </div>
-                            ` : ''}
                             <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                             <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                         </div>
@@ -1142,9 +1148,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const barColor = sub.completed ? 'var(--success)' : 'var(--bg-surface-hover)';
                     const textColor = sub.completed ? '#fff' : 'var(--text-main)';
                     const border = `1px solid ${tag.color}`;
+                    const subStartStr = sub.startDate || p.startDate || '';
+                    const subEndStr = sub.endDate || p.startDate || '';
+                    const subDateStr = subStartStr && subEndStr ? `${subStartStr.split('-').reverse().join('/')} - ${subEndStr.split('-').reverse().join('/')}` : '';
+
                     return `
-                        <div class="gantt-bar-item" data-type="subtask" data-id="${sub.id}" data-parent="${p.id}" style="position: absolute; top: ${8 + item.absoluteY}px; left: ${item.left}px; width: ${item.width}px; height: 26px; background: ${barColor}; border: ${border}; border-radius: 4px; cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3;">
+                        <div class="gantt-bar-item gantt-tooltip-container" data-type="subtask" data-id="${sub.id}" data-parent="${p.id}" style="position: absolute; top: ${8 + item.absoluteY}px; left: ${item.left}px; width: ${item.width}px; height: 26px; background: ${barColor}; border: ${border}; border-radius: 4px; cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3;">
                             <span style="font-size: 0.75rem; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${sub.title}</span>
+                            <div class="gantt-tooltip">
+                                <strong style="color: #fff; font-size: 0.85rem; display: block; margin-bottom: 2px;">↳ ${sub.title}</strong>
+                                <span style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 2px;">De: ${p.title}</span>
+                                <span style="color: ${sub.completed ? 'var(--success)' : 'var(--text-muted)'}; font-size: 0.7rem; display: block; margin-bottom: 2px;">Status: ${sub.completed ? 'Concluída' : 'Pendente'}</span>
+                                <span style="color: var(--text-muted); font-size: 0.7rem;">${subDateStr}</span>
+                            </div>
                             <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                             <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                         </div>
