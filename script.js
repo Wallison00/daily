@@ -469,66 +469,78 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 const taskCompletedDateHtml = (task.completed && task.completedDate)
-                    ? `<span style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-left: auto;"><i class="ph ph-calendar-check"></i> ${task.completedDate.split('-').reverse().join('/')}</span>`
+                    ? `<span style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;"><i class="ph ph-calendar-check"></i> ${task.completedDate.split('-').reverse().join('/')}</span>`
                     : '';
 
                 const expandSubtasksBtnHtml = (task.subtasks && task.subtasks.length > 0)
-                    ? `<button type="button" class="btn-icon expand-subtasks-btn" title="Mostrar/Ocultar Checkpoints" style="padding: 2px 6px; margin-left: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface);">
-                        <i class="ph ph-caret-down"></i> ${task.subtasks.length}
+                    ? `<button type="button" class="btn-icon expand-subtasks-btn" title="Mostrar/Ocultar Checkpoints" style="padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface);">
+                        <i class="ph ph-caret-down"></i> ${task.subtasks.length} Checkpoints
                        </button>`
                     : '';
 
-                if (reqBadges || taskCompletedDateHtml || expandSubtasksBtnHtml) {
-                    requestersAndDateHtml = `
-                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
-                            <div class="requester-area" style="margin: 0; display: flex; gap: 4px; flex-wrap: wrap;">
-                                ${reqBadges}
-                            </div>
-                            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-                                ${expandSubtasksBtnHtml}
-                                ${taskCompletedDateHtml}
-                            </div>
-                        </div>`;
-                }
-
-                const notesHtml = task.notes
-                    ? `<div class="task-notes-display" style="font-size: 0.8rem; color: var(--text-muted); padding: 6px 8px; background: rgba(0,0,0,0.03); border-radius: 4px; margin-top: 6px; border-left: 2px solid var(--border);">${task.notes.replace(/\n/g, '<br>')}</div>`
-                    : '';
-
-                li.innerHTML = `
-                    <div class="task-content" style="width: 100%;">
-                        <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: space-between;">
-                            <div style="flex: 1; word-break: break-word; line-height: 1.5;">
-                                ${tagBadgeHtml}
-                                ${azureLinkHtml}
-                                <span class="task-text" style="vertical-align: middle;">${task.title}</span>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0;">
-                                <label class="switch-wrapper" title="Marcar como concluída" style="margin-top: 2px;">
-                                    <input type="checkbox" class="switch-custom" ${task.completed ? 'checked' : ''} />
-                                    <span class="switch-slider"></span>
-                                </label>
-                                <div class="task-actions-wrapper">
-                                    <button class="task-actions-btn btn-icon" title="Opções" style="padding: 2px;">
-                                        <i class="ph ph-dots-three-vertical ph-lg"></i>
-                                    </button>
-                                    <div class="task-actions-dropdown">
-                                        <button class="task-action-item edit-btn">
-                                            <i class="ph ph-pencil-simple ph-lg"></i> Editar
-                                        </button>
-                                        <button class="task-action-item reschedule-btn">
-                                            <i class="ph ph-calendar ph-lg"></i> Remarcar
-                                        </button>
-                                        <button class="task-action-item delete delete-btn">
-                                            <i class="ph ph-trash ph-lg"></i> Excluir
-                                        </button>
-                                    </div>
+                const row1Html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; min-height: 24px;">
+                        <div>
+                            ${tagBadgeHtml}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label class="switch-wrapper" title="Marcar como concluída">
+                                <input type="checkbox" class="switch-custom" ${task.completed ? 'checked' : ''} />
+                                <span class="switch-slider"></span>
+                            </label>
+                            <div class="task-actions-wrapper">
+                                <button class="task-actions-btn btn-icon" title="Opções" style="padding: 2px;">
+                                    <i class="ph ph-dots-three-vertical ph-lg"></i>
+                                </button>
+                                <div class="task-actions-dropdown">
+                                    <button class="task-action-item edit-btn"><i class="ph ph-pencil-simple ph-lg"></i> Editar</button>
+                                    <button class="task-action-item reschedule-btn"><i class="ph ph-calendar ph-lg"></i> Remarcar</button>
+                                    <button class="task-action-item delete delete-btn"><i class="ph ph-trash ph-lg"></i> Excluir</button>
                                 </div>
                             </div>
                         </div>
-                        ${requestersAndDateHtml}
+                    </div>
+                `;
+
+                const row2Html = `
+                    <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 6px; flex-wrap: wrap;">
+                        ${azureLinkHtml}
+                        <span class="task-text" style="vertical-align: middle; line-height: 1.4;">${task.title}</span>
+                    </div>
+                `;
+
+                let row3Html = '';
+                if (reqBadges || expandSubtasksBtnHtml) {
+                    row3Html = `
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                            <div class="requester-area" style="margin: 0; display: flex; gap: 4px; flex-wrap: wrap;">
+                                ${reqBadges}
+                            </div>
+                            <div>
+                                ${expandSubtasksBtnHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const notesHtml = task.notes
+                    ? `<div class="task-notes-display" style="font-size: 0.8rem; color: var(--text-muted); padding: 6px 8px; background: rgba(0,0,0,0.03); border-radius: 4px; margin-top: 6px; border-left: 2px solid var(--border); margin-bottom: 6px;">${task.notes.replace(/\n/g, '<br>')}</div>`
+                    : '';
+
+                const dateRowHtml = taskCompletedDateHtml ? `
+                    <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                        ${taskCompletedDateHtml}
+                    </div>
+                ` : '';
+
+                li.innerHTML = `
+                    <div class="task-content" style="width: 100%;">
+                        ${row1Html}
+                        ${row2Html}
+                        ${row3Html}
                         ${notesHtml}
-                        <div class="subtasks-container" style="margin-top: 6px; display: none; flex-direction: column; gap: 4px;"></div>
+                        <div class="subtasks-container" style="display: none; flex-direction: column; gap: 4px;"></div>
+                        ${dateRowHtml}
                     </div>
                 `;
 
