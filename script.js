@@ -1013,9 +1013,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const top = 8 + (trackIndex * 36);
                 const barColor = t.completed ? 'var(--success)' : tag.color;
                 
+                let subtasksListHtml = '';
+                if (t.subtasks && t.subtasks.length > 0) {
+                    const completedCount = t.subtasks.filter(s => s.completed).length;
+                    subtasksListHtml = `
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Checkpoints (${completedCount}/${t.subtasks.length}):</strong>
+                        <ul style="padding-left:16px; margin:0; font-size:0.75rem; color:var(--text-muted);">
+                            ${t.subtasks.map(s => `<li style="margin-bottom:2px;">${s.completed ? `<strike style="color:var(--success)">${s.title}</strike>` : s.title}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                }
+
                 return `
-                    <div class="gantt-bar-item" data-id="${t.id}" style="position: absolute; top: ${top}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
+                    <div class="gantt-bar-item gantt-tooltip-container" data-id="${t.id}" style="position: absolute; top: ${top}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
                         <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
+                        ${subtasksListHtml ? `
+                        <div class="gantt-tooltip">
+                            <strong style="color: #fff; font-size: 0.85rem; display: block; margin-bottom: 2px;">${t.title}</strong>
+                            <span style="color: var(--text-muted); font-size: 0.7rem;">${t.startDate.split('-').reverse().join('/')} - ${t.endDate.split('-').reverse().join('/')}</span>
+                            ${subtasksListHtml}
+                        </div>
+                        ` : ''}
                         <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                         <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                     </div>
