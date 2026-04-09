@@ -216,7 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
             newEnd.setDate(newEnd.getDate() + durationDays);
 
             const taskId = ganttDragState.activeBar.dataset.id;
-            const task = tasks.find(t => t.id === taskId);
+            const dataType = ganttDragState.activeBar.dataset.type;
+            const parentId = ganttDragState.activeBar.dataset.parent;
             
             ganttDragState.isDragging = false;
             ganttDragState.isResizing = false;
@@ -224,10 +225,36 @@ document.addEventListener('DOMContentLoaded', () => {
             ganttDragState.activeBar = null;
             document.body.style.cursor = 'default';
 
-            if (task) {
-                task.startDate = formatToYYYYMMDD(newStart);
-                task.endDate = formatToYYYYMMDD(newEnd);
-                saveTasks();
+            if (dataType === 'subtask' && parentId) {
+                const parent = tasks.find(t => t.id === parentId);
+                if (parent) {
+                    const sub = parent.subtasks.find(s => s.id === taskId);
+                    if (sub) {
+                        sub.startDate = formatToYYYYMMDD(newStart);
+                        sub.endDate = formatToYYYYMMDD(newEnd);
+                        
+                        // Auto update parent dates based on ALL mapped subtasks
+                        let minDateStr = null, maxDateStr = null;
+                        parent.subtasks.forEach(s => {
+                            if (s.startDate) {
+                                if (!minDateStr || s.startDate < minDateStr) minDateStr = s.startDate;
+                                if (!maxDateStr || s.endDate > maxDateStr) maxDateStr = s.endDate;
+                            }
+                        });
+                        if (minDateStr && maxDateStr) {
+                            parent.startDate = minDateStr;
+                            parent.endDate = maxDateStr;
+                        }
+                        saveTasks();
+                    }
+                }
+            } else {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.startDate = formatToYYYYMMDD(newStart);
+                    task.endDate = formatToYYYYMMDD(newEnd);
+                    saveTasks();
+                }
             }
         }
     });
@@ -984,35 +1011,100 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tag.name}">${tag.name}</span>
             </div>`;
 
-            let tracks = []; // array to track the explicit End Date of the last task placed in each track
-
-            let rowBarsHTML = tagTasks.map((t) => {
-                const sTemp = parseYYYYMMDD(t.startDate);
-                const eTemp = parseYYYYMMDD(t.endDate);
-                const startOffDays = Math.round((sTemp - minDate) / (1000 * 60 * 60 * 24));
-                const lengthDays = Math.round((eTemp - sTemp) / (1000 * 60 * 60 * 24)) + 1;
-
-                const left = startOffDays * dayWidth;
-                const width = lengthDays * dayWidth;
-
-                // Find track line
-                let trackIndex = -1;
-                for (let i = 0; i < tracks.length; i++) {
-                    if (sTemp > tracks[i]) {
-                        trackIndex = i;
-                        break;
-                    }
-                }
-                if (trackIndex === -1) {
-                    trackIndex = tracks.length;
-                    tracks.push(eTemp);
-                } else {
-                    tracks[trackIndex] = eTemp;
-                }
-
-                const top = 8 + (trackIndex * 36);
-                const barColor = t.completed ? 'var(--success)' : tag.color;
+            let absoluteRenderList = [];
+            let svgsHTML = '';
+            let boundingBoxes = []; // Engine 2D de colisão para compactar sub-itens
+            
+            // Construir Grupos Familiares (Pai + Filhos visíveis)
+            tagTasks.forEach(t => {
+                let groupItems = [];
+                let sTemp = parseYYYYMMDD(t.startDate);
+                let eTemp = parseYYYYMMDD(t.endDate);
                 
+                const isExpanded = window.ganttExpandedTasks.has(t.id);
+                // Se expandido, as datas do PAI se baseiam nas subtasks mapeadas dinamicamente aqui visualmente
+                // A persistência acontece apenas no momento do "drop" ou na edição
+                
+                let pLeft = Math.round((sTemp - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                let pWidth = (Math.round((eTemp - sTemp) / (1000 * 60 * 60 * 24)) + 1) * dayWidth;
+                
+                groupItems.push({
+                    type: 'task',
+                    task: t,
+                    localY: 0,
+                    left: pLeft,
+                    right: pLeft + pWidth,
+                    width: pWidth
+                });
+                
+                if (isExpanded && t.subtasks && t.subtasks.length > 0) {
+                    let subY = 36;
+                    t.subtasks.forEach(sub => {
+                        let subSStr = sub.startDate || t.startDate;
+                        let subEStr = sub.endDate || t.startDate; // Defaults to parent mapping
+                        let subS = parseYYYYMMDD(subSStr);
+                        let subE = parseYYYYMMDD(subEStr);
+                        let sLeft = Math.round((subS - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                        let sWidth = (Math.round((subE - subS) / (1000 * 60 * 60 * 24)) + 1) * dayWidth;
+                        
+                        groupItems.push({
+                            type: 'subtask',
+                            subtask: sub,
+                            parentTask: t,
+                            localY: subY,
+                            left: sLeft,
+                            right: sLeft + sWidth,
+                            width: sWidth
+                        });
+                        subY += 36;
+                    });
+                }
+                
+                let dy = 0;
+                while (true) {
+                    let collision = false;
+                    for (let item of groupItems) {
+                        let aTop = dy + item.localY;
+                        let aBottom = aTop + 26; // Height da barra (26px) + gap
+                        for (let box of boundingBoxes) {
+                            if (item.left < box.right && item.right > box.left && aTop < box.bottom && aBottom > box.top) {
+                                collision = true; break;
+                            }
+                        }
+                        if (collision) break;
+                    }
+                    if (!collision) break;
+                    dy += 36; // Avança para a próxima faixa vertical (track)
+                }
+                
+                // Add absolute items and bounding boxes
+                groupItems.forEach((item, idx) => {
+                    item.absoluteY = dy + item.localY;
+                    boundingBoxes.push({ left: item.left, right: item.right, top: item.absoluteY, bottom: item.absoluteY + 26 });
+                    absoluteRenderList.push(item);
+                    
+                    // Desenha linha de conexão como SVG no background
+                    if (idx > 0) {
+                        const parentItem = groupItems[0];
+                        const startX = parentItem.left + 12; // Saindo pelo canto inferior esquerdo do pai
+                        const startY = parentItem.absoluteY + 26;
+                        let endX = item.left;
+                        let endY = item.absoluteY + 13;
+                        if (endX < startX) endX = item.left + item.width;
+                        svgsHTML += `<path d="M ${startX} ${startY} V ${endY} H ${endX}" fill="none" stroke="${tag.color}" stroke-opacity="0.6" stroke-width="2" stroke-linejoin="round" />`;
+                    }
+                });
+            });
+
+            let rowBarsHTML = absoluteRenderList.map((item) => {
+                if (item.type === 'task') {
+                    const t = item.task;
+                    const barColor = t.completed ? 'var(--success)' : tag.color;
+                    const isExpanded = window.ganttExpandedTasks.has(t.id);
+                    const expandBtn = (t.subtasks && t.subtasks.length > 0) ? `
+                        <div class="gantt-expand-btn" data-id="${t.id}" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; background: rgba(255,255,255,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+                            <i class="ph ${isExpanded ? 'ph-caret-up' : 'ph-caret-down'}" style="font-size: 0.75rem; color: #fff; pointer-events: none;"></i>
+                        </div>` : '';
                 let subtasksListHtml = '';
                 if (t.subtasks && t.subtasks.length > 0) {
                     const completedCount = t.subtasks.filter(s => s.completed).length;
@@ -1025,28 +1117,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`;
                 }
 
-                return `
-                    <div class="gantt-bar-item gantt-tooltip-container" data-id="${t.id}" style="position: absolute; top: ${top}px; left: ${left}px; width: ${width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3; transition: background 0.2s;">
-                        <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
-                        ${subtasksListHtml ? `
-                        <div class="gantt-tooltip">
-                            <strong style="color: #fff; font-size: 0.85rem; display: block; margin-bottom: 2px;">${t.title}</strong>
-                            <span style="color: var(--text-muted); font-size: 0.7rem;">${t.startDate.split('-').reverse().join('/')} - ${t.endDate.split('-').reverse().join('/')}</span>
-                            ${subtasksListHtml}
+                    return `
+                        <div class="gantt-bar-item gantt-tooltip-container" data-type="task" data-id="${t.id}" style="position: absolute; top: ${8 + item.absoluteY}px; left: ${item.left}px; width: ${item.width}px; height: 26px; background: ${barColor}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: grab; display: flex; align-items: center; padding: 0 26px 0 8px; z-index: 3; transition: background 0.2s;">
+                            <span style="font-size: 0.75rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${t.title}</span>
+                            ${expandBtn}
+                            ${subtasksListHtml ? `
+                            <div class="gantt-tooltip">
+                                <strong style="color: #fff; font-size: 0.85rem; display: block; margin-bottom: 2px;">${t.title}</strong>
+                                <span style="color: var(--text-muted); font-size: 0.7rem;">${t.startDate.split('-').reverse().join('/')} - ${t.endDate.split('-').reverse().join('/')}</span>
+                                ${subtasksListHtml}
+                            </div>
+                            ` : ''}
+                            <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
+                            <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
                         </div>
-                        ` : ''}
-                        <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
-                        <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    const sub = item.subtask;
+                    const p = item.parentTask;
+                    const barColor = sub.completed ? 'var(--success)' : 'var(--bg-surface-hover)';
+                    const textColor = sub.completed ? '#fff' : 'var(--text-main)';
+                    const border = `1px solid ${tag.color}`;
+                    return `
+                        <div class="gantt-bar-item" data-type="subtask" data-id="${sub.id}" data-parent="${p.id}" style="position: absolute; top: ${8 + item.absoluteY}px; left: ${item.left}px; width: ${item.width}px; height: 26px; background: ${barColor}; border: ${border}; border-radius: 4px; cursor: grab; display: flex; align-items: center; padding: 0 8px; z-index: 3;">
+                            <span style="font-size: 0.75rem; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; pointer-events: none;">${sub.title}</span>
+                            <div class="gantt-handle gantt-handle-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
+                            <div class="gantt-handle gantt-handle-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize;"></div>
+                        </div>
+                    `;
+                }
             }).join('');
 
-            const rowHeight = Math.max(tracks.length * 36 + 16, 60);
+            const maxBottom = boundingBoxes.length > 0 ? Math.max(...boundingBoxes.map(b => b.bottom)) : 0;
+            const rowHeight = Math.max(maxBottom + 16, 60);
 
             rowsHTML.push(`
                 <div class="gantt-row" style="display: flex; min-height: ${rowHeight}px; border-bottom: 1px solid var(--border); box-sizing: content-box; position: relative; width: ${totalWidth + 200}px;">
                     ${rowHeader}
                     <div class="gantt-bars-container" style="position: relative; width: ${totalWidth}px; flex-shrink: 0;">
+                        ${svgsHTML ? `<svg style="position: absolute; left:0; top:8px; width:100%; height:100%; pointer-events:none; z-index:2;">${svgsHTML}</svg>` : ''}
                         ${rowBarsHTML}
                     </div>
                 </div>
@@ -1068,6 +1177,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+
+        // Expand btn listeners
+        ganttContainer.querySelectorAll('.gantt-expand-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                if (window.ganttExpandedTasks.has(id)) window.ganttExpandedTasks.delete(id);
+                else window.ganttExpandedTasks.add(id);
+                renderGantt();
+            });
+        });
 
         if (!ganttContainer.dataset.initialized && todayOffsetLeft > 0) {
             requestAnimationFrame(() => {
@@ -1121,7 +1241,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bar.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
-                openEditModal(bar.dataset.id);
+                if (bar.dataset.type === 'subtask') {
+                    openEditModal(bar.dataset.parent);
+                } else {
+                    openEditModal(bar.dataset.id);
+                }
             });
         });
 

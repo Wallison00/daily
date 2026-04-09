@@ -663,3 +663,7 @@ input:checked+.switch-slider:before {
     visibility: visible;
     opacity: 1;
 }
+
+.gantt-bar-item:hover {
+    z-index: 99 !important;
+}
