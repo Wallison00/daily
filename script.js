@@ -214,6 +214,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const ganttDropZone = document.getElementById('gantt-container');
+    if (ganttDropZone) {
+        ganttDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        ganttDropZone.addEventListener('drop', (e) => {
+            const taskId = e.dataTransfer.getData('text/plain');
+            if (taskId && ganttDragState.minDate) {
+                e.preventDefault();
+                
+                const backgrounds = ganttDropZone.querySelector('.gantt-background');
+                if (!backgrounds) return;
+                
+                const rect = backgrounds.getBoundingClientRect();
+                const dropX = e.clientX - rect.left;
+                
+                let droppedDaysOff = Math.floor(dropX / ganttDragState.dayWidth);
+                if (droppedDaysOff < 0) droppedDaysOff = 0;
+
+                const start = new Date(ganttDragState.minDate);
+                start.setDate(start.getDate() + droppedDaysOff);
+                
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.startDate = formatToYYYYMMDD(start);
+                    task.endDate = formatToYYYYMMDD(start);
+                    saveTasks(); // re-renders Gantt automatically
+                }
+            }
+        });
+    }
+
     // Initialize dates
     const today = new Date();
     const todayStr = formatToYYYYMMDD(today);
@@ -1026,7 +1060,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 ganttDragState.startWidth = parseInt(bar.style.width || 0);
                 document.body.style.cursor = 'ew-resize';
             });
+
+            bar.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openEditModal(bar.dataset.id);
+            });
         });
+
+        // Populating the Backlog
+        const backlogContainer = document.getElementById('gantt-backlog-content');
+        if (backlogContainer) {
+            backlogContainer.innerHTML = '';
+            const unscheduledTasks = tasks.filter(t => !t.completed && (!t.startDate || !t.endDate));
+            
+            if (unscheduledTasks.length === 0) {
+                backlogContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; padding: 8px;">Nenhuma atividade pendente para agendar no Quadro.</div>';
+            } else {
+                unscheduledTasks.forEach(t => {
+                    const tag = allTags.find(tg => tg.id === t.tagId) || defaultTag;
+                    const card = document.createElement('div');
+                    card.draggable = true;
+                    card.className = 'gantt-backlog-card';
+                    card.style.cssText = `
+                        background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+                        padding: 12px; width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;
+                        cursor: grab; border-left: 4px solid ${tag.color}; transition: transform 0.2s, opacity 0.2s;
+                    `;
+                    card.title = "Dê clique-duplo para editar ou arraste para preencher sua data";
+                    card.innerHTML = `
+                        <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                            <span>${tag.name}</span>
+                            <i class="ph ph-arrows-out-line-horizontal" style="color: var(--text-muted);"></i>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${t.title}</div>
+                    `;
+                    
+                    card.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', t.id);
+                        setTimeout(() => card.style.opacity = '0.5', 0);
+                    });
+                    card.addEventListener('dragend', () => {
+                        card.style.opacity = '1';
+                    });
+                    card.addEventListener('dblclick', () => {
+                        openEditModal(t.id);
+                    });
+                    
+                    backlogContainer.appendChild(card);
+                });
+            }
+        }
     }
 
     // Handlers
