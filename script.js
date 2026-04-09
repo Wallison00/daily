@@ -473,8 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 const expandSubtasksBtnHtml = (task.subtasks && task.subtasks.length > 0)
-                    ? `<button type="button" class="btn-icon expand-subtasks-btn" title="Mostrar/Ocultar Checkpoints" style="padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface);">
-                        <i class="ph ph-caret-down"></i> ${task.subtasks.length} Checkpoints
+                    ? `<button type="button" class="btn-icon expand-subtasks-btn" title="Mostrar/Ocultar Checkpoints" style="padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface); margin-left: auto;">
+                        <i class="ph ph-caret-down"></i> ${task.subtasks.length}
                        </button>`
                     : '';
 
@@ -512,13 +512,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 let row3Html = '';
                 if (reqBadges || expandSubtasksBtnHtml) {
                     row3Html = `
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
                             <div class="requester-area" style="margin: 0; display: flex; gap: 4px; flex-wrap: wrap;">
                                 ${reqBadges}
                             </div>
-                            <div>
-                                ${expandSubtasksBtnHtml}
-                            </div>
+                            ${expandSubtasksBtnHtml}
                         </div>
                     `;
                 }
