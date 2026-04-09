@@ -73,6 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const filterTagSelectObj = document.getElementById('filter-tag-select');
+    if (filterTagSelectObj) {
+        filterTagSelectObj.addEventListener('change', () => {
+            renderTasks();
+        });
+    }
+
     // Global listener to close dropdowns
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions-wrapper')) {
@@ -256,6 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
             editTagSelect.innerHTML = '<option value="">Sem etiqueta</option>';
         }
 
+        const filterTagSelect = document.getElementById('filter-tag-select');
+        let currentFilterVal = '';
+        if (filterTagSelect) {
+            currentFilterVal = filterTagSelect.value;
+            filterTagSelect.innerHTML = '<option value="">Todas etiquetas</option>';
+        }
+
         tags.forEach(tag => {
             const option = document.createElement('option');
             option.value = tag.id;
@@ -268,8 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 editOption.textContent = tag.name;
                 editTagSelect.appendChild(editOption);
             }
+
+            if (filterTagSelect) {
+                const filterOption = document.createElement('option');
+                filterOption.value = tag.id;
+                filterOption.textContent = tag.name;
+                filterTagSelect.appendChild(filterOption);
+            }
         });
         tagSelect.value = currentVal;
+        if (filterTagSelect && currentFilterVal) filterTagSelect.value = currentFilterVal;
     }
 
     function renderTasks() {
@@ -340,6 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const subtaskMatch = task.subtasks && task.subtasks.some(st => st.azureCode && st.azureCode.toLowerCase().includes(searchCodeVal));
                     return taskMatch || subtaskMatch;
                 });
+            }
+
+            // Filtro por Etiqueta (Tag)
+            const globalTagFilter = document.getElementById('filter-tag-select');
+            const searchTagVal = globalTagFilter ? globalTagFilter.value : '';
+            if (searchTagVal) {
+                dateTasks = dateTasks.filter(task => task.tagId === searchTagVal);
             }
 
             hasRenderedTask = hasRenderedTask || (dateTasks.length > 0);
