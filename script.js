@@ -472,13 +472,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `<span style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-left: auto;"><i class="ph ph-calendar-check"></i> ${task.completedDate.split('-').reverse().join('/')}</span>`
                     : '';
 
-                if (reqBadges || taskCompletedDateHtml) {
+                const expandSubtasksBtnHtml = (task.subtasks && task.subtasks.length > 0)
+                    ? `<button type="button" class="btn-icon expand-subtasks-btn" title="Mostrar/Ocultar Checkpoints" style="padding: 2px 6px; margin-left: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface);">
+                        <i class="ph ph-caret-down"></i> ${task.subtasks.length}
+                       </button>`
+                    : '';
+
+                if (reqBadges || taskCompletedDateHtml || expandSubtasksBtnHtml) {
                     requestersAndDateHtml = `
                         <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
                             <div class="requester-area" style="margin: 0; display: flex; gap: 4px; flex-wrap: wrap;">
                                 ${reqBadges}
                             </div>
-                            ${taskCompletedDateHtml}
+                            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                                ${expandSubtasksBtnHtml}
+                                ${taskCompletedDateHtml}
+                            </div>
                         </div>`;
                 }
 
@@ -519,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         ${requestersAndDateHtml}
                         ${notesHtml}
-                        <div class="subtasks-container" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
+                        <div class="subtasks-container" style="margin-top: 6px; display: none; flex-direction: column; gap: 4px;"></div>
                     </div>
                 `;
 
@@ -597,6 +606,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         subtasksContainer.appendChild(stLabel);
                     });
+
+                    // Toggle subtasks visibility
+                    const expandBtn = li.querySelector('.expand-subtasks-btn');
+                    if (expandBtn) {
+                        expandBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const isHidden = subtasksContainer.style.display === 'none';
+                            subtasksContainer.style.display = isHidden ? 'flex' : 'none';
+                            const icon = expandBtn.querySelector('i');
+                            icon.className = isHidden ? 'ph ph-caret-up' : 'ph ph-caret-down';
+                        });
+                    }
 
                     // Subtasks dragover and drop
                     subtasksContainer.addEventListener('dragover', e => {
