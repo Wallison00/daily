@@ -630,9 +630,10 @@ input:checked+.switch-slider:before {
     visibility: hidden;
     opacity: 0;
     position: absolute;
-    bottom: calc(100% + 4px);
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
+    margin-top: 8px;
     background-color: var(--bg-surface);
     border: 1px solid var(--border);
     color: var(--text-main);
@@ -651,12 +652,12 @@ input:checked+.switch-slider:before {
 .gantt-tooltip::after {
     content: '';
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     margin-left: -6px;
     border-width: 6px;
     border-style: solid;
-    border-color: var(--border) transparent transparent transparent;
+    border-color: transparent transparent var(--border) transparent;
 }
 
 .gantt-tooltip-container:hover .gantt-tooltip {
@@ -666,4 +667,8 @@ input:checked+.switch-slider:before {
 
 .gantt-bar-item:hover {
     z-index: 99 !important;
+}
+
+.gantt-row:hover {
+    z-index: 999 !important;
 }

@@ -121,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.style.borderLeftColor = 'var(--accent)';
 
             const view = item.dataset.view;
+            localStorage.setItem('activeView', view);
             if (view === 'daily') {
                 if (viewDaily) viewDaily.style.display = 'flex';
                 if (viewGantt) viewGantt.style.display = 'none';
@@ -131,6 +132,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Restaurar view salva
+    const activeView = localStorage.getItem('activeView') || 'daily';
+    const activeTabObj = Array.from(sidebarItems).find(i => i.dataset.view === activeView);
+    if (activeTabObj) activeTabObj.click();
 
     // Backlog Collapsible logic
     const toggleBacklogHeader = document.getElementById('toggle-backlog-header');
@@ -1275,9 +1281,20 @@ document.addEventListener('DOMContentLoaded', () => {
             backlogContainer.innerHTML = '';
             const unscheduledTasks = tasks.filter(t => !t.completed && (!t.startDate || !t.endDate));
             
+            const backlogSection = document.getElementById('gantt-backlog-section');
+            const toggleIcon = document.getElementById('toggle-backlog-icon');
+            
             if (unscheduledTasks.length === 0) {
                 backlogContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; padding: 8px;">Nenhuma atividade pendente para agendar no Quadro.</div>';
+                if (backlogSection && toggleIcon) {
+                    backlogSection.style.height = '49px';
+                    toggleIcon.style.transform = 'rotate(-180deg)';
+                }
             } else {
+                if (backlogSection && toggleIcon) {
+                    backlogSection.style.height = '220px';
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                }
                 unscheduledTasks.forEach(t => {
                     const tag = allTags.find(tg => tg.id === t.tagId) || defaultTag;
                     const card = document.createElement('div');
