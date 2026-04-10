@@ -175,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isResizing: false,
         activeBar: null,
         startX: 0,
+        startY: 0,
         startLeft: 0,
         startWidth: 0,
         resizeDir: '',
@@ -188,6 +189,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ganttDragState.isDragging) {
             const newLeft = Math.max(0, ganttDragState.startLeft + diffX);
             ganttDragState.activeBar.style.left = `${newLeft}px`;
+            
+            const diffY = e.clientY - (ganttDragState.startY || e.clientY);
+            ganttDragState.activeBar.style.transform = `translateY(${diffY}px)`;
+            ganttDragState.activeBar.style.zIndex = '9999';
+
+            const backlogSection = document.getElementById('gantt-backlog-section');
+            if (backlogSection) {
+                const rect = backlogSection.getBoundingClientRect();
+                if (e.clientY >= rect.top - 20) {
+                    backlogSection.style.boxShadow = 'inset 0 0 0 2px var(--accent)';
+                    backlogSection.style.background = 'rgba(59, 130, 246, 0.05)';
+                    ganttDragState.activeBar.style.opacity = '0.5';
+                } else {
+                    backlogSection.style.boxShadow = '';
+                    backlogSection.style.background = 'var(--bg-dark)';
+                    ganttDragState.activeBar.style.opacity = '1';
+                }
+            }
         } else if (ganttDragState.isResizing) {
             if (ganttDragState.resizeDir === 'left') {
                 let newLeft = ganttDragState.startLeft + diffX;
@@ -209,8 +228,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', (e) => {
         if (ganttDragState.activeBar && (ganttDragState.isDragging || ganttDragState.isResizing)) {
+            ganttDragState.activeBar.style.transform = '';
+            ganttDragState.activeBar.style.zIndex = '3';
+            ganttDragState.activeBar.style.opacity = '1';
+
+            const taskId = ganttDragState.activeBar.dataset.id;
+            const dataType = ganttDragState.activeBar.dataset.type;
+            const parentId = ganttDragState.activeBar.dataset.parent;
+
+            const backlogSection = document.getElementById('gantt-backlog-section');
+            if (backlogSection && ganttDragState.isDragging) {
+                backlogSection.style.boxShadow = '';
+                backlogSection.style.background = 'var(--bg-dark)';
+                
+                const rect = backlogSection.getBoundingClientRect();
+                if (e.clientY >= rect.top - 20) {
+                    
+                    ganttDragState.isDragging = false;
+                    ganttDragState.isResizing = false;
+                    ganttDragState.activeBar.style.cursor = 'grab';
+                    ganttDragState.activeBar = null;
+                    document.body.style.cursor = 'default';
+
+                    if (dataType === 'subtask' && parentId) {
+                        const parent = tasks.find(t => t.id === parentId);
+                        if (parent) {
+                            const sub = parent.subtasks.find(s => s.id === taskId);
+                            if (sub) {
+                                sub.startDate = null;
+                                sub.endDate = null;
+                                // Auto update parent dates based on ALL mapped subtasks
+                                let minDateStr = null, maxDateStr = null;
+                                parent.subtasks.forEach(s => {
+                                    if (s.startDate) {
+                                        if (!minDateStr || s.startDate < minDateStr) minDateStr = s.startDate;
+                                        if (!maxDateStr || s.endDate > maxDateStr) maxDateStr = s.endDate;
+                                    }
+                                });
+                                parent.startDate = minDateStr;
+                                parent.endDate = maxDateStr;
+                                saveTasks();
+                            }
+                        }
+                    } else {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            task.startDate = null;
+                            task.endDate = null;
+                            saveTasks();
+                        }
+                    }
+                    return;
+                }
+            }
+
             const finalLeft = parseInt(ganttDragState.activeBar.style.left || 0);
             const finalWidth = parseInt(ganttDragState.activeBar.style.width || 0);
             
@@ -1236,6 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ganttDragState.isDragging = true;
                 ganttDragState.activeBar = bar;
                 ganttDragState.startX = e.clientX;
+                ganttDragState.startY = e.clientY;
                 ganttDragState.startLeft = parseInt(bar.style.left || 0);
                 ganttDragState.startWidth = parseInt(bar.style.width || 0);
                 bar.style.cursor = 'grabbing';
@@ -1292,40 +1366,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 if (backlogSection && toggleIcon) {
-                    backlogSection.style.height = '220px';
+                    backlogSection.style.height = '240px';
                     toggleIcon.style.transform = 'rotate(0deg)';
                 }
+                
+                const groupedTasks = {};
                 unscheduledTasks.forEach(t => {
-                    const tag = allTags.find(tg => tg.id === t.tagId) || defaultTag;
-                    const card = document.createElement('div');
-                    card.draggable = true;
-                    card.className = 'gantt-backlog-card';
-                    card.style.cssText = `
-                        background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
-                        padding: 12px; width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;
-                        cursor: grab; border-left: 4px solid ${tag.color}; transition: transform 0.2s, opacity 0.2s;
+                    const tagId = t.tagId || '';
+                    if (!groupedTasks[tagId]) groupedTasks[tagId] = [];
+                    groupedTasks[tagId].push(t);
+                });
+
+                Object.keys(groupedTasks).forEach(tagId => {
+                    const tag = allTags.find(tg => tg.id === tagId) || defaultTag;
+                    const tasksInTag = groupedTasks[tagId];
+
+                    const column = document.createElement('div');
+                    column.className = 'gantt-backlog-column';
+                    column.style.cssText = `
+                        display: flex; flex-direction: column; gap: 8px; width: 260px; flex-shrink: 0;
+                        background: var(--bg-surface); border-radius: var(--radius); padding: 8px; border: 1px solid var(--border);
+                        max-height: 100%; overflow-y: auto;
                     `;
-                    card.title = "Dê clique-duplo para editar ou arraste para preencher sua data";
-                    card.innerHTML = `
-                        <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
-                            <span>${tag.name}</span>
-                            <i class="ph ph-arrows-out-line-horizontal" style="color: var(--text-muted);"></i>
+
+                    const colHeader = document.createElement('div');
+                    colHeader.style.cssText = `font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg-surface); z-index: 1;`;
+                    colHeader.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${tag.color};"></div>
+                            ${tag.name}
                         </div>
-                        <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${t.title}</div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-dark); padding: 2px 6px; border-radius: 10px;">${tasksInTag.length}</span>
                     `;
-                    
-                    card.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.setData('text/plain', t.id);
-                        setTimeout(() => card.style.opacity = '0.5', 0);
+                    column.appendChild(colHeader);
+
+                    tasksInTag.forEach(t => {
+                        const card = document.createElement('div');
+                        card.draggable = true;
+                        card.className = 'gantt-backlog-card';
+                        card.style.cssText = `
+                            background: var(--bg-dark); border: 1px solid var(--border); border-radius: var(--radius);
+                            padding: 10px; display: flex; flex-direction: column; gap: 6px;
+                            cursor: grab; border-left: 3px solid ${tag.color}; transition: transform 0.2s, opacity 0.2s;
+                        `;
+                        card.title = "Dê clique-duplo para editar ou arraste para preencher sua data";
+                        card.innerHTML = `
+                            <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${t.title}</div>
+                        `;
+                        
+                        card.addEventListener('dragstart', (e) => {
+                            e.dataTransfer.setData('text/plain', t.id);
+                            setTimeout(() => card.style.opacity = '0.5', 0);
+                        });
+                        card.addEventListener('dragend', () => {
+                            card.style.opacity = '1';
+                        });
+                        card.addEventListener('dblclick', () => {
+                            openEditModal(t.id);
+                        });
+                        
+                        column.appendChild(card);
                     });
-                    card.addEventListener('dragend', () => {
-                        card.style.opacity = '1';
-                    });
-                    card.addEventListener('dblclick', () => {
-                        openEditModal(t.id);
-                    });
-                    
-                    backlogContainer.appendChild(card);
+
+                    backlogContainer.appendChild(column);
                 });
             }
         }
