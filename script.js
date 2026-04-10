@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskAzureCode = document.getElementById('task-azure-code');
     const requesterInput = document.getElementById('requester-input');
     const taskNotes = document.getElementById('task-notes');
-    const dateInput = document.getElementById('date-input');
     const tasksContainer = document.getElementById('tasks-container');
 
     const tagSelect = document.getElementById('tag-select');
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const editTaskAzureCode = document.getElementById('edit-task-azure-code');
     const editRequesterInput = document.getElementById('edit-requester-input');
     const editTaskNotes = document.getElementById('edit-task-notes');
-    const editDateInput = document.getElementById('edit-date-input');
     const editTagSelect = document.getElementById('edit-tag-select');
     const editSubtasksList = document.getElementById('edit-subtasks-list');
     const newSubtaskInput = document.getElementById('new-subtask-input');
@@ -596,12 +594,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupKey = 'concluidos';
             } else if (!task.date) {
                 groupKey = 'backlog';
-            } else if (task.date < todayStr) {
+            } else if (task.date === '1999-01-01') {
                 groupKey = 'pendentes';
-            } else if (task.date === todayStr) {
+            } else if (task.date === '2000-01-01') {
                 groupKey = 'hoje';
-            } else {
+            } else if (task.date === '2100-01-01') {
                 groupKey = 'em_desenvolvimento';
+            } else {
+                // legacy support
+                if (task.date < todayStr) {
+                    groupKey = 'pendentes';
+                } else if (task.date === todayStr) {
+                    groupKey = 'hoje';
+                } else {
+                    groupKey = 'em_desenvolvimento';
+                }
             }
 
             groups[groupKey].tasks.push(task);
@@ -818,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${row2Html}
                         ${row3Html}
                         ${notesHtml}
-                        <div class="subtasks-container" style="display: none; flex-direction: column; gap: 4px;"></div>
+                        <div class="subtasks-container" style="display: ${window.ganttExpandedTasks.has('sub_' + task.id) ? 'flex' : 'none'}; flex-direction: column; gap: 4px;"></div>
                         ${dateRowHtml}
                     </div>
                 `;
@@ -925,6 +932,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             subtasksContainer.style.display = isHidden ? 'flex' : 'none';
                             const icon = expandBtn.querySelector('i');
                             icon.className = isHidden ? 'ph ph-caret-up' : 'ph ph-caret-down';
+                            if (isHidden) {
+                                window.ganttExpandedTasks.add('sub_' + task.id);
+                            } else {
+                                window.ganttExpandedTasks.delete('sub_' + task.id);
+                            }
                         });
                     }
 
@@ -1207,8 +1219,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     let etapa = '';
                     if (t.completed) etapa = 'Concluído';
                     else if (!t.date) etapa = 'Backlog';
-                    else if (t.date < todayStr) etapa = 'Pendente';
-                    else if (t.date === todayStr) etapa = 'Hoje';
+                    else if (t.date === '1999-01-01') etapa = 'Pendente';
+                    else if (t.date === '2000-01-01') etapa = 'Hoje';
                     else etapa = 'Em Desenvolvimento';
 
                     let subtasksListHtml = '';
@@ -1458,65 +1470,55 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyColumnTarget(targetColumn, inOutDate, inOutCompleted) {
         let date = inOutDate;
         let completed = inOutCompleted;
-        const todayStr = formatToYYYYMMDD(new Date());
         
         if (targetColumn === 'concluidos') {
             completed = true;
         } else if (targetColumn) {
             completed = false;
+            // Usamos datas estáticas marcadores para garantir que não avança nunca mais automaticamente
             if (targetColumn === 'backlog') date = '';
-            else if (targetColumn === 'hoje') date = todayStr;
-            else if (targetColumn === 'pendentes') {
-                if (!date || date >= todayStr) {
-                    let y = new Date(); y.setDate(y.getDate() - 1);
-                    date = formatToYYYYMMDD(y);
-                }
-            } else if (targetColumn === 'em_desenvolvimento') {
-                if (!date || date <= todayStr) {
-                    let tm = new Date(); tm.setDate(tm.getDate() + 1);
-                    date = formatToYYYYMMDD(tm);
-                }
-            }
+            else if (targetColumn === 'hoje') date = '2000-01-01';
+            else if (targetColumn === 'pendentes') date = '1999-01-01';
+            else if (targetColumn === 'em_desenvolvimento') date = '2100-01-01';
         }
         return { date, completed };
     }
 
+    // Utilities
+    function formatToYYYYMMDD(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     function addTask(e) {
         e.preventDefault();
-        const title = taskInput.value.trim();
-        const date = dateInput.value;
-        const columnTarget = document.getElementById('column-select') ? document.getElementById('column-select').value : '';
-        const tagId = tagSelect ? tagSelect.value : '';
-        const reqVal = requesterInput ? requesterInput.value.trim() : '';
-        const notes = taskNotes ? taskNotes.value.trim() : '';
-        const azureCode = taskAzureCode ? taskAzureCode.value.trim() : '';
-        const startDate = document.getElementById('start-date-input') ? document.getElementById('start-date-input').value : '';
-        const endDate = document.getElementById('end-date-input') ? document.getElementById('end-date-input').value : '';
-
-        if (!title) return;
-
-        const requesters = reqVal ? reqVal.split(',').map(r => r.trim()).filter(Boolean) : [];
+        const newTitle = taskInput.value.trim();
+        if (!newTitle) return;
 
         const newTask = {
             id: Date.now().toString(),
-            title,
-            date: date || '',
-            tagId,
-            requesters,
-            notes,
-            azureCode,
-            comments: [],
-            subtasks: [...currentNewTaskSubtasks],
+            title: newTitle,
             completed: false,
-            startDate,
-            endDate
+            tagId: tagSelect ? tagSelect.value : null,
+            requesters: requesterInput.value ? requesterInput.value.split(',').map(r => r.trim()).filter(r => r) : [],
+            notes: taskNotes.value || null,
+            azureCode: taskAzureCode.value || null,
+            comments: [],
+            completedDate: null,
+            subtasks: currentNewTaskSubtasks,
+            date: '' // default to backlog logic
         };
 
-        if (columnTarget) {
-            const result = applyColumnTarget(columnTarget, newTask.date, newTask.completed);
-            newTask.date = result.date;
-            newTask.completed = result.completed;
-            if (result.completed) newTask.completedDate = formatToYYYYMMDD(new Date());
+        const targetColumnSelect = document.getElementById('target-column-select');
+        let initialDate = '';
+        let initialCompleted = false;
+        if (targetColumnSelect && targetColumnSelect.value) {
+            const assignment = applyColumnTarget(targetColumnSelect.value, initialDate, initialCompleted);
+            newTask.date = assignment.date;
+            newTask.completed = assignment.completed;
+            if (newTask.completed) newTask.completedDate = formatToYYYYMMDD(new Date());
         }
 
         tasks.push(newTask);
@@ -1573,17 +1575,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (targetDate === 'backlog') {
                     task.date = '';
                 } else if (targetDate === 'hoje') {
-                    task.date = todayStr;
+                    task.date = '2000-01-01';
                 } else if (targetDate === 'pendentes') {
-                    if (!task.date || task.date >= todayStr) {
-                        let y = new Date(); y.setDate(y.getDate() - 1);
-                        task.date = formatToYYYYMMDD(y);
-                    }
+                    task.date = '1999-01-01';
                 } else if (targetDate === 'em_desenvolvimento') {
-                    if (!task.date || task.date <= todayStr) {
-                        let tm = new Date(); tm.setDate(tm.getDate() + 1);
-                        task.date = formatToYYYYMMDD(tm);
-                    }
+                    task.date = '2100-01-01';
                 } else {
                     task.date = targetDate;
                 }
@@ -1715,12 +1711,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditModal(id) {
         const task = tasks.find(t => t.id === id);
         if (task) {
-            taskToEdit = id;
+            taskToEdit = id; 
+
             editTaskInput.value = task.title;
             if (editTaskAzureCode) editTaskAzureCode.value = task.azureCode || '';
             if (editRequesterInput) editRequesterInput.value = (task.requesters && task.requesters.length > 0) ? task.requesters.join(', ') : '';
             if (editTaskNotes) editTaskNotes.value = task.notes || '';
-            editDateInput.value = task.date;
+            
             editTagSelect.value = task.tagId || '';
             
             const editStartDateInput = document.getElementById('edit-start-date-input');
@@ -1880,7 +1877,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const task = tasks.find(t => t.id === taskToEdit);
         if (task) {
             task.title = editTaskInput.value.trim();
-            task.date = editDateInput.value;
             task.tagId = editTagSelect.value;
             
             const colSelect = document.getElementById('edit-column-select');
