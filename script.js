@@ -372,8 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize dates
     const today = new Date();
     const todayStr = formatToYYYYMMDD(today);
-    dateInput.value = todayStr;
-
+    // Removed dateInput reference
+    
     // Load initial data
     loadTasks();
 
@@ -1793,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         parentTask.subtasks = currentEditSubtasks;
                     }
 
-                    const parentDate = editDateInput ? editDateInput.value : '';
+                    const parentDate = '';
                     const parentTag = editTagSelect ? editTagSelect.value : '';
 
                     const newTask = {
@@ -1959,7 +1959,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     currentNewTaskSubtasks = currentNewTaskSubtasks.filter(s => s.id !== st.id);
                     
-                    const parentDate = dateInput ? dateInput.value : '';
+                    const parentDate = '';
                     const parentTag = tagSelect ? tagSelect.value : '';
 
                     const newTask = {
