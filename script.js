@@ -851,7 +851,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                         ${subAzureLinkHtml}
                                         <span style="${st.completed ? 'text-decoration: line-through; color: var(--text-muted);' : ''} vertical-align: middle;" title="${st.title}">${st.title}</span>
                                     </div>
-                                    <input type="date" class="subtask-date-input" title="Data de conclusão" value="${st.completedDate || ''}" style="width: fit-content; margin-top: 4px; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted); ${st.completed ? 'display: inline-block;' : 'display: none;'}" />
+                                    <div style="display: flex; gap: 4px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+                                        <input type="date" class="subtask-start-input" title="Data Início" value="${st.startDate || ''}" style="width: auto; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted);" />
+                                        <span style="color: var(--text-muted); font-size: 0.75rem;">-</span>
+                                        <input type="date" class="subtask-date-input" title="Data Conclusão" value="${st.endDate || st.completedDate || ''}" style="width: auto; padding: 2px 4px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-dark); color: var(--text-muted);" />
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -869,29 +873,43 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         const cb = stLabel.querySelector('.subtask-checkbox');
+                        const startInput = stLabel.querySelector('.subtask-start-input');
                         const dateInput = stLabel.querySelector('.subtask-date-input');
+                        
                         cb.addEventListener('change', (e) => {
                             st.completed = e.target.checked;
-                            const span = stLabel.querySelector('span');
+                            const span = stLabel.querySelector('span[title]');
                             if (st.completed) {
-                                span.style.textDecoration = 'line-through';
-                                span.style.color = 'var(--text-muted)';
-                                if (!st.completedDate) {
-                                    st.completedDate = formatToYYYYMMDD(new Date());
+                                if (span) {
+                                    span.style.textDecoration = 'line-through';
+                                    span.style.color = 'var(--text-muted)';
                                 }
-                                dateInput.value = st.completedDate;
-                                dateInput.style.display = 'inline-block';
+                                if (!st.endDate) {
+                                    st.endDate = formatToYYYYMMDD(new Date());
+                                    st.completedDate = st.endDate;
+                                }
+                                dateInput.value = st.endDate;
                             } else {
-                                span.style.textDecoration = 'none';
-                                span.style.color = 'inherit';
-                                dateInput.style.display = 'none';
-                                st.completedDate = null;
+                                if (span) {
+                                    span.style.textDecoration = 'none';
+                                    span.style.color = 'inherit';
+                                }
+                                // We leave dates intact when unchecking to prevent data loss, unless they clear it manually
                             }
                             saveTasks();
                         });
-                        dateInput.addEventListener('mousedown', e => e.stopPropagation()); // prevent drag on click
+                        
+                        startInput.addEventListener('mousedown', e => e.stopPropagation()); // prevent drag on click
+                        dateInput.addEventListener('mousedown', e => e.stopPropagation());
+                        
+                        startInput.addEventListener('change', (e) => {
+                            st.startDate = e.target.value || null;
+                            saveTasks();
+                        });
+                        
                         dateInput.addEventListener('change', (e) => {
-                            st.completedDate = e.target.value;
+                            st.endDate = e.target.value || null;
+                            st.completedDate = st.endDate;
                             saveTasks();
                         });
 
