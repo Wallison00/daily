@@ -295,9 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newEnd = new Date(newStart);
             newEnd.setDate(newEnd.getDate() + durationDays);
 
-            const taskId = ganttDragState.activeBar.dataset.id;
-            const dataType = ganttDragState.activeBar.dataset.type;
-            const parentId = ganttDragState.activeBar.dataset.parent;
+            // Variables already declared at the top of mouseup handler
             
             ganttDragState.isDragging = false;
             ganttDragState.isResizing = false;
