@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const requesterInput = document.getElementById('requester-input');
     const taskNotes = document.getElementById('task-notes');
     const tasksContainer = document.getElementById('tasks-container');
+    const ganttTodayBtn = document.getElementById('gantt-today-btn');
 
     const tagSelect = document.getElementById('tag-select');
     const addTagBtn = document.getElementById('add-tag-btn');
@@ -376,6 +377,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load initial data
     loadTasks();
+
+    if (ganttTodayBtn) {
+        ganttTodayBtn.addEventListener('click', () => {
+            const container = document.getElementById('gantt-container');
+            if (container && window.ganttTodayOffsetLeft > 0) {
+                const halfWidth = container.clientWidth / 2;
+                container.scrollTo({ left: Math.max(0, window.ganttTodayOffsetLeft - halfWidth), behavior: 'smooth' });
+            }
+        });
+    }
 
     // Functions
     function getDragAfterElement(container, y, itemSelector) {
@@ -1085,11 +1096,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalDays = Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1;
         const totalWidth = totalDays * dayWidth;
 
-        let timelineHTML = `<div class="gantt-timeline-header" style="display: flex; width: ${totalWidth}px; border-bottom: 1px solid var(--border); box-sizing: content-box;">`;
+        let timelineHTML = `<div class="gantt-timeline-header" style="flex-direction: column; width: ${totalWidth}px; border-bottom: 1px solid var(--border); box-sizing: content-box;">`;
+        let monthRowHTML = `<div style="display: flex; height: 26px; border-bottom: 1px solid var(--border); background: var(--bg-surface);">`;
+        let daysRowHTML = `<div style="display: flex;">`;
         let backgroundsHTML = `<div class="gantt-background" style="display: flex; position: absolute; top: 0; left: 0; bottom: 0; width: ${totalWidth}px; pointer-events: none; z-index: 0;">`;
         
         const todayStr = formatToYYYYMMDD(new Date());
         let todayOffsetLeft = 0;
+
+        let currentMonthStr = '';
+        let currentMonthDays = 0;
+        let pendingMonthDivs = '';
 
         for (let i = 0; i < totalDays; i++) {
             let current = new Date(minDate);
@@ -1101,10 +1118,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 todayOffsetLeft = i * dayWidth;
             }
 
+            const monthName = current.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            if (monthName !== currentMonthStr) {
+                if (currentMonthStr !== '') {
+                    pendingMonthDivs += `<div style="width: ${currentMonthDays * dayWidth}px; flex-shrink: 0; text-align: center; font-size: 0.75rem; color: var(--text-main); font-weight: 500; text-transform: capitalize; padding-top: 4px; border-right: 1px solid var(--border);">${currentMonthStr}</div>`;
+                }
+                currentMonthStr = monthName;
+                currentMonthDays = 0;
+            }
+            currentMonthDays++;
+
             const dayName = current.toLocaleDateString('pt-BR', { weekday: 'short' });
             const dayNum = current.getDate();
 
-            timelineHTML += `
+            daysRowHTML += `
                 <div style="width: ${dayWidth}px; flex-shrink: 0; text-align: center; border-right: 1px solid var(--border); padding: 4px 0; background: ${isToday ? 'rgba(59, 130, 246, 0.1)' : 'transparent'};">
                     <div style="font-size: 0.65rem; color: ${isToday ? 'var(--accent)' : 'var(--text-muted)'}; text-transform: uppercase;">${dayName}</div>
                     <div style="font-size: 0.85rem; font-weight: ${isToday ? 'bold' : 'normal'}; color: ${isToday ? 'var(--text-main)' : 'var(--text-muted)'};">${dayNum}</div>
@@ -1113,8 +1140,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             backgroundsHTML += `<div style="width: ${dayWidth}px; flex-shrink: 0; border-right: 1px solid var(--border); background: ${isToday ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};"></div>`;
         }
-        timelineHTML += `</div>`;
+        
+        if (currentMonthDays > 0) {
+            pendingMonthDivs += `<div style="width: ${currentMonthDays * dayWidth}px; flex-shrink: 0; text-align: center; font-size: 0.75rem; color: var(--text-main); font-weight: 500; text-transform: capitalize; padding-top: 4px; border-right: 1px solid var(--border);">${currentMonthStr}</div>`;
+        }
+        monthRowHTML += pendingMonthDivs + `</div>`;
+        daysRowHTML += `</div>`;
+        timelineHTML += monthRowHTML + daysRowHTML + `</div>`;
         backgroundsHTML += `</div>`;
+
+        window.ganttTodayOffsetLeft = todayOffsetLeft;
 
         let todayLineHTML = '';
         if (todayOffsetLeft > 0) {
