@@ -461,6 +461,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveTasks() {
         try {
+            // Auto expand/shrink parent task dates to tightly fit subtask dates
+            tasks.forEach(t => {
+                if (t.subtasks && t.subtasks.length > 0) {
+                    let minDate = null;
+                    let maxDate = null;
+                    t.subtasks.forEach(st => {
+                        const sStart = st.startDate;
+                        const sEnd = st.endDate || st.completedDate;
+                        if (sStart) {
+                            if (!minDate || sStart < minDate) minDate = sStart;
+                            if (!maxDate || sStart > maxDate) maxDate = sStart;
+                        }
+                        if (sEnd) {
+                            if (!minDate || sEnd < minDate) minDate = sEnd;
+                            if (!maxDate || sEnd > maxDate) maxDate = sEnd;
+                        }
+                    });
+                    if (minDate) t.startDate = minDate;
+                    if (maxDate) t.endDate = maxDate;
+                }
+            });
+
             // Upsert tags
             if (tags.length > 0) {
                 await supabase.from('tags').upsert(tags.map(t => ({
