@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let taskToReschedule = null;
     let columnDateFilters = { pendentes: '', concluidos: '' };
     window.ganttExpandedTasks = window.ganttExpandedTasks || new Set();
+    window.ganttShowCompletedTags = window.ganttShowCompletedTags !== undefined ? window.ganttShowCompletedTags : false;
 
     // Elements
     const fabAddTask = document.getElementById('fab-add-task');
@@ -1171,6 +1172,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const tagTasks = tasksWithDates.filter(t => (t.tagId === tag.id) || (!t.tagId && tag.id === ''));
             if (tagTasks.length === 0) return;
 
+            // REGRA: Se não estiver no modo "exibir concluídos", esconder raias onde TODAS as tarefas estão concluídas
+            if (!window.ganttShowCompletedTags) {
+                const hasOpenTasks = tagTasks.some(t => !t.completed);
+                if (!hasOpenTasks) return; 
+            }
+
             // Ordenar por data inicial para otimizar os tracks
             tagTasks.sort((a, b) => parseYYYYMMDD(a.startDate) - parseYYYYMMDD(b.startDate));
 
@@ -1349,7 +1356,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ganttContainer.innerHTML = `
             <div style="display: flex; flex-direction: column; position: relative; width: fit-content; min-width: 100%;">
                 <div style="display: flex; position: sticky; top: 0; z-index: 10; background: var(--bg-dark);">
-                    <div style="width: 200px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-surface); position: sticky; left: 0; z-index: 11; border-bottom: 1px solid var(--border);"></div>
+                    <div style="width: 200px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-surface); position: sticky; left: 0; z-index: 11; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Projetos</span>
+                        <button id="toggle-completed-tags" title="${window.ganttShowCompletedTags ? 'Esconder projetos concluídos' : 'Mostrar projetos concluídos'}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; transition: var(--transition);">
+                            <i class="ph ${window.ganttShowCompletedTags ? 'ph-eye' : 'ph-eye-slash'}" style="font-size: 1.1rem;"></i>
+                        </button>
+                    </div>
                     ${timelineHTML}
                 </div>
                 <div style="position: relative;">
@@ -1372,6 +1384,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderGantt();
             });
         });
+
+        // Toggle completed tags listener
+        const toggleBtn = document.getElementById('toggle-completed-tags');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                window.ganttShowCompletedTags = !window.ganttShowCompletedTags;
+                renderGantt();
+            });
+            // Hover effect
+            toggleBtn.addEventListener('mouseenter', () => toggleBtn.style.color = 'var(--accent)');
+            toggleBtn.addEventListener('mouseleave', () => toggleBtn.style.color = 'var(--text-muted)');
+        }
 
         if (!ganttContainer.dataset.initialized && todayOffsetLeft > 0) {
             requestAnimationFrame(() => {
