@@ -1209,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let subY = 36;
                     t.subtasks.forEach(sub => {
                         let subSStr = sub.startDate || t.startDate;
-                        let subEStr = sub.endDate || t.startDate; // Defaults to parent mapping
+                        let subEStr = sub.endDate || sub.completedDate || t.endDate || t.startDate; // Better mapping for Gantt rendering widths
                         let subS = parseYYYYMMDD(subSStr);
                         let subE = parseYYYYMMDD(subEStr);
                         let sLeft = Math.round((subS - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
@@ -1313,7 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const textColor = sub.completed ? '#fff' : 'var(--text-main)';
                     const border = `1px solid ${tag.color}`;
                     const subStartStr = sub.startDate || p.startDate || '';
-                    const subEndStr = sub.endDate || p.startDate || '';
+                    const subEndStr = sub.endDate || sub.completedDate || p.endDate || p.startDate || '';
                     const subDateStr = subStartStr && subEndStr ? `${subStartStr.split('-').reverse().join('/')} - ${subEndStr.split('-').reverse().join('/')}` : '';
 
                     return `
